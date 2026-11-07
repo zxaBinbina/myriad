@@ -1,0 +1,45 @@
+import {
+  AppWindow,
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  Clock,
+  ExternalLink,
+  FolderInput,
+  FolderOpen,
+  FolderPlus,
+  LayoutGrid,
+  Pencil,
+  Pin,
+  PinOff,
+  Plus,
+  Scaling,
+  Settings,
+  Trash2,
+  Ungroup,
+} from '@lucide/vue'
+import type { Component } from 'vue'
+import { GROUP_ICONS } from '../components/base/groupIcons'
+
+/** 菜单等处按名称使用的 lucide 图标 */
+export const UI_ICONS: Record<string, Component> = {
+  ...GROUP_ICONS,
+  'app-window': AppWindow,
+  'arrow-left': ArrowLeft,
+  'arrow-right': ArrowRight,
+  'calendar-days': CalendarDays,
+  clock: Clock,
+  'external-link': ExternalLink,
+  'folder-input': FolderInput,
+  'folder-open': FolderOpen,
+  'folder-plus': FolderPlus,
+  'layout-grid': LayoutGrid,
+  pencil: Pencil,
+  pin: Pin,
+  'pin-off': PinOff,
+  plus: Plus,
+  scaling: Scaling,
+  settings: Settings,
+  'trash-2': Trash2,
+  ungroup: Ungroup,
+}

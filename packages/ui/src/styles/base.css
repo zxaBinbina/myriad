@@ -1,0 +1,257 @@
+/* 万象基础样式：通用控件。组件内部细节写在各自的 scoped 样式中。 */
+.myriad {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --icon-size: 64px;
+  --icon-radius: 14px;
+  --cell-pad-x: 26px;
+  --cell-gap-y: 18px;
+  --label-h: 22px;
+}
+.myriad *,
+.myriad *::before,
+.myriad *::after {
+  box-sizing: border-box;
+}
+.myriad ::selection {
+  background: var(--selection-bg);
+  color: #fff;
+}
+.myriad ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.myriad ::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: var(--scrollbar-thumb) padding-box;
+}
+.myriad ::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover) padding-box;
+}
+.myriad ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.myriad :where(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+.myriad :where(button) {
+  cursor: pointer;
+}
+.myriad :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+.myriad :focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.myriad[data-density='compact'] {
+  --cell-pad-x: 14px;
+  --cell-gap-y: 10px;
+}
+.myriad .visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- 按钮 ---------- */
+.m-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--secondary-surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    translate 0.2s var(--motion-ease);
+}
+.m-btn:hover:not(:disabled) {
+  background: var(--interactive-hover);
+  border-color: var(--project-hover-border);
+}
+.m-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.m-btn--primary {
+  border-color: transparent;
+  background: var(--primary-action);
+  color: var(--primary-action-text);
+  box-shadow: 0 6px 18px var(--primary-action-shadow);
+}
+.m-btn--primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--primary-action-hover);
+  box-shadow: 0 8px 22px var(--primary-action-hover-shadow);
+}
+.m-btn--danger {
+  color: var(--status-danger);
+}
+.m-btn--danger:hover:not(:disabled) {
+  border-color: var(--status-danger);
+  background: color-mix(in srgb, var(--status-danger) 12%, transparent);
+}
+.m-btn--small {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+.m-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+.m-icon-btn:hover:not(:disabled) {
+  background: var(--interactive-hover);
+  color: var(--text);
+}
+.m-icon-btn--small {
+  width: 32px;
+  height: 32px;
+}
+
+/* ---------- 毛玻璃表面 ---------- */
+.m-glass {
+  border: 1px solid var(--border);
+  border-top-color: var(--header-top-border);
+  background: var(--glass);
+  box-shadow:
+    0 8px 30px var(--shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+.m-card {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--panel);
+}
+.myriad.has-wallpaper .m-card {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+/* ---------- 表单 ---------- */
+.m-input,
+.m-select,
+.m-textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--secondary-surface);
+  color: var(--text);
+  font-size: 13px;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+.m-input::placeholder,
+.m-textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+.m-input:focus,
+.m-select:focus,
+.m-textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+  background: var(--panel);
+}
+.m-select {
+  appearance: none;
+  padding-right: 36px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 52%,
+    calc(100% - 13px) 52%;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+}
+.m-select option {
+  background: var(--panel);
+  color: var(--text);
+}
+.m-field {
+  display: grid;
+  gap: 6px;
+}
+.m-field > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.m-error {
+  color: var(--status-danger);
+  font-size: 12px;
+}
+
+/* 英文小标签（编号栏目） */
+.m-eyebrow {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* 键帽 */
+.m-kbd {
+  display: inline-flex;
+  align-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--tag-surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+}

@@ -1,0 +1,177 @@
+/*
+ * 万象主题变量。取值来自个人主页（homepage/src/style.css，见 DESIGN.md §3），
+ * 作用域限定在 .myriad 根元素上，嵌入其他站点时不污染宿主页面。
+ * 配色由 data-palette 选择，明暗由 data-theme 选择，四个块按级联顺序叠加。
+ */
+.myriad {
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-sans: Inter, 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --bg: #141521;
+  --section: #11121d;
+  --panel: #1b1d2b;
+  --panel-hover: #202335;
+  --text: #dae2ed;
+  --muted: #979eaf;
+  --blue: #4ea4ef;
+  --indigo: #2d3c81;
+  --warm: #937562;
+  --status-success: #75c7ac;
+  --status-danger: #ef999f;
+  --border: rgba(218, 226, 237, 0.11);
+  --glass: rgba(29, 31, 46, 0.76);
+  --shadow: rgba(0, 0, 0, 0.2);
+  --accent-glow: rgba(78, 164, 239, 0.5);
+  --selection-bg: #2d3c81;
+  --title-gradient-start: #8bc8fa;
+  --title-gradient-mid: #4ea4ef;
+  --title-gradient-end: #7686d5;
+  --primary-action: #4ea4ef;
+  --primary-action-text: #0c1c31;
+  --primary-action-hover: #81bff4;
+  --primary-action-shadow: rgba(78, 164, 239, 0.14);
+  --primary-action-hover-shadow: rgba(78, 164, 239, 0.25);
+  --header-top-border: rgba(218, 226, 237, 0.23);
+  --interactive-hover: rgba(147, 163, 202, 0.12);
+  --secondary-surface: rgba(147, 163, 202, 0.05);
+  --tag-surface: rgba(147, 163, 202, 0.08);
+  --ambient-glow: rgba(45, 60, 129, 0.24);
+  --project-hover-border: rgba(78, 164, 239, 0.45);
+  --project-icon-border: rgba(78, 164, 239, 0.16);
+  --project-icon-surface: rgba(78, 164, 239, 0.07);
+  --scrollbar-thumb: #505d80;
+  --scrollbar-thumb-hover: #7194c0;
+  --seg-selected-bg: color-mix(in srgb, var(--blue) 26%, var(--panel));
+  --seg-selected-border: color-mix(in srgb, var(--blue) 65%, var(--panel));
+  /* 万象新增：壁纸遮罩与图片上的文字 */
+  --wallpaper-tint: rgba(10, 11, 20, 1);
+  --on-wallpaper: #f3f6fb;
+  --on-wallpaper-muted: rgba(243, 246, 251, 0.78);
+  color-scheme: dark;
+}
+
+.myriad[data-theme='light'] {
+  --bg: #f4f6fa;
+  --section: #e9eef6;
+  --panel: #fff;
+  --panel-hover: #eaf0f8;
+  --text: #141521;
+  --muted: #5e6875;
+  --blue: #2468b1;
+  --status-success: #24765c;
+  --status-danger: #b33d4b;
+  --border: rgba(45, 60, 129, 0.15);
+  --glass: rgba(255, 255, 255, 0.82);
+  --shadow: rgba(45, 60, 129, 0.08);
+  --accent-glow: rgba(36, 104, 177, 0.42);
+  --ambient-glow: rgba(45, 60, 129, 0.12);
+  --title-gradient-start: #2468b1;
+  --title-gradient-mid: #3184d2;
+  --title-gradient-end: #6a78cf;
+  --header-top-border: rgba(45, 60, 129, 0.12);
+  --interactive-hover: rgba(45, 60, 129, 0.07);
+  --secondary-surface: rgba(45, 60, 129, 0.035);
+  --tag-surface: rgba(45, 60, 129, 0.06);
+  --project-hover-border: rgba(36, 104, 177, 0.4);
+  --project-icon-border: rgba(36, 104, 177, 0.18);
+  --project-icon-surface: rgba(36, 104, 177, 0.06);
+  --scrollbar-thumb: #a4b3ca;
+  --scrollbar-thumb-hover: #6a89af;
+  --seg-selected-bg: var(--panel);
+  --seg-selected-border: transparent;
+  --wallpaper-tint: rgba(244, 246, 250, 1);
+  --on-wallpaper: #141521;
+  --on-wallpaper-muted: rgba(20, 21, 33, 0.72);
+  color-scheme: light;
+}
+
+.myriad[data-palette='hutao-red'] {
+  --bg: #3a1b19;
+  --section: color-mix(in srgb, #3a1b19 84%, #7b595e);
+  --panel: color-mix(in srgb, #3a1b19 72%, #7b595e);
+  --panel-hover: color-mix(in srgb, #3a1b19 56%, #7b595e);
+  --text: #fcf0e1;
+  --muted: #c7a085;
+  --blue: #ed8871;
+  --indigo: #7b595e;
+  --warm: #c7a085;
+  --status-success: #8cc4a2;
+  --status-danger: #e88772;
+  --border: rgba(252, 240, 225, 0.14);
+  --glass: rgba(58, 27, 25, 0.84);
+  --shadow: rgba(20, 8, 7, 0.3);
+  --accent-glow: rgba(201, 71, 55, 0.48);
+  --selection-bg: #7b595e;
+  --title-gradient-start: #fcf0e1;
+  --title-gradient-mid: #c7a085;
+  --title-gradient-end: #c94737;
+  --primary-action: #c94737;
+  --primary-action-text: #fff;
+  --primary-action-hover: #b9473a;
+  --primary-action-shadow: rgba(201, 71, 55, 0.16);
+  --primary-action-hover-shadow: rgba(201, 71, 55, 0.28);
+  --header-top-border: rgba(252, 240, 225, 0.22);
+  --interactive-hover: rgba(123, 89, 94, 0.18);
+  --secondary-surface: rgba(123, 89, 94, 0.12);
+  --tag-surface: rgba(123, 89, 94, 0.16);
+  --ambient-glow: rgba(201, 71, 55, 0.26);
+  --project-hover-border: rgba(237, 136, 113, 0.58);
+  --project-icon-border: rgba(201, 71, 55, 0.34);
+  --project-icon-surface: rgba(201, 71, 55, 0.1);
+  --scrollbar-thumb: #7b595e;
+  --scrollbar-thumb-hover: #c7a085;
+  --wallpaper-tint: rgba(30, 12, 11, 1);
+  --on-wallpaper: #fcf0e1;
+  --on-wallpaper-muted: rgba(252, 240, 225, 0.8);
+}
+
+.myriad[data-theme='light'][data-palette='hutao-red'] {
+  --bg: #fcf0e1;
+  --section: #f2dfce;
+  --panel: #fffaf3;
+  --panel-hover: #f3e2d5;
+  --text: #3a1b19;
+  --muted: #7b595e;
+  --blue: #a83d33;
+  --status-success: #397653;
+  --status-danger: #a33b32;
+  --border: rgba(58, 27, 25, 0.16);
+  --glass: rgba(252, 240, 225, 0.88);
+  --shadow: rgba(58, 27, 25, 0.1);
+  --accent-glow: rgba(201, 71, 55, 0.32);
+  --title-gradient-start: #7b595e;
+  --title-gradient-mid: #c94737;
+  --title-gradient-end: #a83d33;
+  --primary-action: #a83d33;
+  --primary-action-text: #fcf0e1;
+  --primary-action-hover: #b74437;
+  --primary-action-shadow: rgba(201, 71, 55, 0.16);
+  --primary-action-hover-shadow: rgba(201, 71, 55, 0.25);
+  --header-top-border: rgba(123, 89, 94, 0.2);
+  --interactive-hover: rgba(123, 89, 94, 0.11);
+  --secondary-surface: rgba(123, 89, 94, 0.05);
+  --tag-surface: rgba(123, 89, 94, 0.08);
+  --ambient-glow: rgba(201, 71, 55, 0.11);
+  --project-hover-border: rgba(168, 61, 51, 0.48);
+  --project-icon-border: rgba(168, 61, 51, 0.22);
+  --project-icon-surface: rgba(168, 61, 51, 0.07);
+  --scrollbar-thumb: #b68e78;
+  --scrollbar-thumb-hover: #7b595e;
+  --wallpaper-tint: rgba(252, 240, 225, 1);
+  --on-wallpaper: #3a1b19;
+  --on-wallpaper-muted: rgba(58, 27, 25, 0.74);
+}
+
+/* 主题切换时的颜色过渡（减少动态效果时关闭） */
+.myriad.is-theme-transition,
+.myriad.is-theme-transition *,
+.myriad.is-theme-transition *::before,
+.myriad.is-theme-transition *::after {
+  transition:
+    background-color 0.6s ease,
+    border-color 0.6s ease,
+    color 0.6s ease,
+    fill 0.6s ease,
+    box-shadow 0.6s ease !important;
+}

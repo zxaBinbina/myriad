@@ -1,0 +1,21 @@
+{
+  "name": "@myriad/ui",
+  "version": "0.1.0",
+  "description": "万象（Myriad）的 Vue 3 界面：网格、文件夹、Dock、搜索、时钟与设置。",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./style.css": "./src/styles/index.css"
+  },
+  "scripts": {
+    "typecheck": "vue-tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@lucide/vue": "^1.70.0",
+    "@myriad/core": "0.1.0",
+    "lucide": "^1.70.0",
+    "simple-icons": "^16.36.0",
+    "vue": "^3.5.45"
+  }
+}

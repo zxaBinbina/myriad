@@ -1,0 +1,31 @@
+{
+  "name": "myriad",
+  "private": true,
+  "description": "万象（Myriad）——你的上网起点，一页尽万象。",
+  "license": "Apache-2.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @myriad/extension",
+    "dev:firefox": "npm run dev:firefox -w @myriad/extension",
+    "dev:web": "npm run dev -w @myriad/playground",
+    "build": "npm run build -w @myriad/extension && npm run build:firefox -w @myriad/extension",
+    "build:web": "npm run build -w @myriad/playground",
+    "zip": "npm run zip -w @myriad/extension && npm run zip:firefox -w @myriad/extension",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10",
+    "typescript": "~5.9.3",
+    "vue-tsc": "^3.3.14"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
