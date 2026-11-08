@@ -364,7 +364,8 @@ function refreshIcons() {
 }
 
 /* ---------------- 同步 ---------------- */
-const sc = store.local.sync
+// store 加载时会整体替换 local.sync，不能缓存对象本身
+const sc = computed(() => store.local.sync)
 const syncBusy = ref(false)
 
 function errorText(code: ApiErrorCode | '') {
@@ -1120,6 +1121,7 @@ function close() {
               <input
                 v-model.trim="sc.apiBase"
                 class="m-input"
+                :aria-label="m.sync.server"
                 type="url"
                 name="myriad-api-base"
                 inputmode="url"
