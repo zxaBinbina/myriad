@@ -4,8 +4,10 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { blobStore } from '../state/blobs'
 import { createCache } from '../state/cache'
 import { useStore } from '../state/store'
+import { useSync } from '../state/sync'
 
 const store = useStore()
+const sync = useSync()
 const cache = createCache(store.platform.storage)
 const emit = defineEmits<{ wallpaper: [active: boolean] }>()
 
@@ -51,6 +53,30 @@ async function bingUrl(): Promise<string> {
   }
 }
 
+/** Unsplash 每日一图：经同步服务获取（Key 在 Worker），按日期缓存 */
+async function unsplashUrl(query = ''): Promise<string> {
+  const key = `wallpaper.unsplash.${today()}.${query}`
+  const hit = await cache.get<string>(key, 86400000)
+  if (hit) return hit
+  try {
+    if (!sync.canUnsplash.value || !sync.api) throw new Error('unavailable')
+    const w = await sync.api.unsplash(query)
+    await cache.set(key, w.url)
+    return w.url
+  } catch {
+    return (await cache.peek<string>(key)) ?? ''
+  }
+}
+
+/** 上传的壁纸：本机没有时（在其他设备上传）从同步服务下载 */
+async function uploadedBlob(key: string): Promise<Blob | undefined> {
+  const local = await blobStore.get(key).catch(() => undefined)
+  if (local) return local
+  const remote = await sync.fetchBlob(key)
+  if (remote) await blobStore.put(key, remote).catch(() => undefined)
+  return remote ?? undefined
+}
+
 type Resolved = { url: string; kind: 'image' | 'video' }
 
 async function resolveSrc(s: WallpaperSpec | undefined): Promise<Resolved> {
@@ -58,7 +84,7 @@ async function resolveSrc(s: WallpaperSpec | undefined): Promise<Resolved> {
   if (!s) return none
   switch (s.source) {
     case 'upload': {
-      const blob = await blobStore.get(s.blobKey).catch(() => undefined)
+      const blob = await uploadedBlob(s.blobKey)
       if (!blob) return none
       objectUrl = URL.createObjectURL(blob)
       return { url: objectUrl, kind: blob.type.startsWith('video/') ? 'video' : 'image' }
@@ -67,6 +93,8 @@ async function resolveSrc(s: WallpaperSpec | undefined): Promise<Resolved> {
       return { url: s.url, kind: VIDEO_EXT.test(s.url) ? 'video' : 'image' }
     case 'bing':
       return { url: await bingUrl(), kind: 'image' }
+    case 'unsplash':
+      return { url: await unsplashUrl(s.query), kind: 'image' }
     case 'picsum': {
       const w = Math.min(3840, Math.round(screen.width * devicePixelRatio))
       const h = Math.min(2160, Math.round(screen.height * devicePixelRatio))
@@ -77,9 +105,14 @@ async function resolveSrc(s: WallpaperSpec | undefined): Promise<Resolved> {
 
 let seq = 0
 let retriedAsVideo = false
+// 同步服务连上后重新解析（Unsplash、其他设备上传的壁纸需要它）
 watch(
-  spec,
-  async (s) => {
+  [spec, () => sync.active.value],
+  async ([s], [prev, wasActive]) => {
+    // 只是同步状态变化、且当前来源不依赖同步时不重新加载
+    if (prev === s && wasActive !== undefined && s?.source !== 'unsplash' && s?.source !== 'upload')
+      return
+    if (prev === s && src.value) return
     const n = ++seq
     const old = objectUrl
     objectUrl = ''

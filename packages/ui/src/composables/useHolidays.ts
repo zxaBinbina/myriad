@@ -2,6 +2,7 @@ import { fetchHolidayYear, type HolidayMap, type HolidayYear } from '@myriad/cor
 import { ref, watch, type Ref } from 'vue'
 import { createCache } from '../state/cache'
 import { useStore } from '../state/store'
+import { useSync } from '../state/sync'
 
 const MAX_AGE = 3 * 86400000
 const memory = new Map<number, HolidayMap>()
@@ -10,6 +11,7 @@ const inflight = new Map<number, Promise<void>>()
 /** 中国法定节假日（含调休），按年加载并缓存；years 变化时自动补齐 */
 export function useHolidays(years: Ref<number[]>, enabled: Ref<boolean>) {
   const store = useStore()
+  const sync = useSync()
   const cache = createCache(store.platform.storage)
   const days = ref<HolidayMap>({})
 
@@ -30,7 +32,7 @@ export function useHolidays(years: Ref<number[]>, enabled: Ref<boolean>) {
           return
         }
         try {
-          const y = await fetchHolidayYear(year)
+          const y = await fetchHolidayYear(year, fetch, sync.holidaySources.value)
           memory.set(year, y.days)
           await cache.set(`holidays.${year}`, y)
         } catch {

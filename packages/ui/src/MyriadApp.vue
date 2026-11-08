@@ -17,11 +17,13 @@ import Overlays from './components/Overlays.vue'
 import SearchBox from './components/SearchBox.vue'
 import SettingsDrawer from './components/settings/SettingsDrawer.vue'
 import ShortcutEditor from './components/ShortcutEditor.vue'
+import SyncDialogs from './components/SyncDialogs.vue'
 import { createI18n, I18N_KEY } from './i18n'
 import type { MyriadPlatform } from './platform'
 import { ACTIONS_KEY, createActions } from './state/actions'
 import { createDragController, DRAG_KEY } from './state/drag'
 import { createStore, STORE_KEY } from './state/store'
+import { createSyncController, SYNC_KEY } from './state/sync'
 
 const props = defineProps<{ platform: MyriadPlatform }>()
 const emit = defineEmits<{ secret: [] }>()
@@ -30,10 +32,12 @@ const store = createStore(props.platform)
 const i18n = createI18n(store.lang)
 const drag = createDragController(store)
 const actions = createActions(store, i18n)
+const sync = createSyncController(store)
 provide(STORE_KEY, store)
 provide(I18N_KEY, i18n)
 provide(DRAG_KEY, drag)
 provide(ACTIONS_KEY, actions)
+provide(SYNC_KEY, sync)
 
 const { m } = i18n
 const s = store.settings
@@ -162,6 +166,7 @@ onMounted(async () => {
   addEventListener('keydown', onKeydown)
   await store.load()
   if (props.platform.focusRequested) search.value?.focus()
+  void sync.init()
 })
 onBeforeUnmount(() => {
   removeEventListener('keydown', onKeydown)
@@ -259,6 +264,7 @@ function onRootContextMenu(e: MouseEvent) {
     <Dashboard />
     <SettingsDrawer />
     <ContextMenu />
+    <SyncDialogs />
     <Overlays />
 
     <div

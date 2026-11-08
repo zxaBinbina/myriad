@@ -22,7 +22,9 @@ Give the wrapper a `role="region"` attribute to communicate its purpose. Provide
 ```html
 <div tabindex="0" role="region" aria-labelledby="employee-table-caption" class="table-wrapper">
   <table>
-    <caption id="employee-table-caption">Current employee directory</caption>
+    <caption id="employee-table-caption">
+      Current employee directory
+    </caption>
     <thead>
       <tr>
         <th>Employee</th>
@@ -44,6 +46,7 @@ Give the wrapper a `role="region"` attribute to communicate its purpose. Provide
 ```
 
 ### 2. Configure Sticky Headers
+
 Enable scrolling and make headers sticky. Use logical properties and explicit z-index values to manage the stacking order.
 
 ```css
@@ -75,17 +78,23 @@ tbody th {
 ```
 
 ### 3. Responsive Stacked Layout
+
 When space is limited, hide the original header row and transform the table into cards. Inject labels using pseudo-elements. Only provide alternative text for non-text content, otherwise this may result in both the text content and accessible name being announced by screen readers.
 
 ```css
 @container (width < 600px) {
-  table, thead, tbody, tr, th, td {
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td {
     display: block;
   }
 
   thead {
     /* MANDATORY: Hide column header from layout and screen readers. */
-    display: none
+    display: none;
   }
 
   tr {
@@ -103,19 +112,19 @@ When space is limited, hide the original header row and transform the table into
 
   /* Define column labels as CSS variables (often set via JS) */
   table {
-    --label-1: "Employee";
-    --label-2: "Role";
-    --label-3: "Status";
+    --label-1: 'Employee';
+    --label-2: 'Role';
+    --label-3: 'Status';
   }
 
   /* Inject labels */
   td:nth-child(2)::before {
     /* MANDATORY: If using non-text content, provide the accessible name (after the /) which ensures screen readers hear the text alternative. */
-    content: var(--label-2) ": ";
+    content: var(--label-2) ': ';
   }
   /* MANDATORY: Map the label for each column */
   td:nth-child(3)::before {
-    content: var(--label-3) ": ";
+    content: var(--label-3) ': ';
   }
 }
 ```

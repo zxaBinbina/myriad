@@ -9,6 +9,8 @@
  * 每个条目只属于一个容器。扁平的 id 表便于以后接入 CRDT（Yjs）同步。
  */
 
+import type { SyncScopes } from './sync/scopes'
+
 export type Id = string
 
 /* ------------------------------------------------------------------ */
@@ -125,6 +127,8 @@ export type WallpaperSpec =
   | { source: 'url'; url: string }
   | { source: 'bing' }
   | { source: 'picsum' }
+  /** Unsplash 每日一图，需要同步服务（Key 放在 Worker） */
+  | { source: 'unsplash'; query?: string }
 
 export interface BackgroundSettings {
   mode: 'solid' | 'wallpaper'
@@ -146,9 +150,8 @@ export interface IconSettings {
   size: 48 | 56 | 64 | 72 | 88
   radius: 'default' | 'large' | 'round'
   showLabels: boolean
+  /** 没有可用的图标代理（同步服务）时使用的第三方 favicon 服务 */
   faviconProvider: FaviconProvider
-  /** 自建图标代理地址（M2 接入同步服务后使用），为空时使用 faviconProvider */
-  proxyBase: string
 }
 
 export interface LayoutSettings {
@@ -262,6 +265,22 @@ export interface MyriadSettings {
   updatedAt: number
 }
 
+/** 同步服务的连接配置（只保存在本机，不导出、不同步） */
+export interface SyncConfig {
+  enabled: boolean
+  /** myriad_api 地址 */
+  apiBase: string
+  /** Cloudflare Access Service Token（扩展使用） */
+  clientId: string
+  clientSecret: string
+  /** 各范围是否同步；关闭的范围只在本机生效 */
+  scopes: SyncScopes
+  /** 已连接时用同步服务的图标代理抓取高清图标 */
+  iconProxy: boolean
+  /** 上次成功同步的时间 */
+  lastSync: number
+}
+
 /** 只保存在本机、不参与同步的状态 */
 export interface LocalState {
   schema: 1
@@ -272,6 +291,9 @@ export interface LocalState {
   onboarded: boolean
   /** 按主机名缓存的图标解析结果 */
   iconCache: Record<string, ResolvedIconCache>
+  sync: SyncConfig
+  /** 同步服务按 IP 判断的国家（用于判断是否为中国用户），每天刷新 */
+  geo: { country: string | null; at: number } | null
 }
 
 export type ResolvedIconCache =

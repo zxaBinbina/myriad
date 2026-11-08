@@ -42,6 +42,11 @@ export function createExtensionPlatform(): MyriadPlatform {
       request: () => browser.permissions.request({ permissions: ['bookmarks'] }),
       getTree: async () => (await browser.bookmarks.getTree()) as BookmarkNode[],
     },
+    // 同步服务地址由用户填写，连接时只申请那一个来源
+    origins: {
+      has: (origin) => browser.permissions.contains({ origins: [`${origin}/*`] }),
+      request: (origin) => browser.permissions.request({ origins: [`${origin}/*`] }),
+    },
     grabFocus: () => {
       // 由扩展发起的导航会把焦点交给页面而不是地址栏
       void browser.tabs.getCurrent().then((tab) => {

@@ -10,6 +10,8 @@ export default defineConfig({
     default_locale: 'zh_CN',
     permissions: ['storage'],
     optional_permissions: ['bookmarks'],
+    // 同步服务（myriad_api）地址可自定义：连接时只申请用户填写的那个来源
+    optional_host_permissions: ['https://*/*', 'http://localhost/*', 'http://127.0.0.1/*'],
     // 搜索联想与每日壁纸接口不支持跨域，需要主机权限
     host_permissions: [
       'https://suggestqueries.google.com/*',

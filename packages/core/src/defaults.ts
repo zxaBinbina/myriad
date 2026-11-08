@@ -1,5 +1,6 @@
 import { defaultEngineSettings } from './engines'
 import { createId } from './id'
+import { defaultSyncScopes } from './sync/scopes'
 import type {
   Group,
   Id,
@@ -8,6 +9,7 @@ import type {
   MyriadData,
   MyriadSettings,
   ShortcutItem,
+  SyncConfig,
   WidgetItem,
 } from './types'
 
@@ -30,7 +32,6 @@ export function defaultSettings(): MyriadSettings {
       radius: 'default',
       showLabels: true,
       faviconProvider: 'google',
-      proxyBase: '',
     },
     layout: {
       mode: 'grid',
@@ -91,7 +92,30 @@ export function defaultSettings(): MyriadSettings {
 }
 
 export function defaultLocalState(): LocalState {
-  return { schema: 1, activeGroup: null, searchHistory: [], onboarded: false, iconCache: {} }
+  return {
+    schema: 1,
+    activeGroup: null,
+    searchHistory: [],
+    onboarded: false,
+    iconCache: {},
+    sync: defaultSyncConfig(),
+    geo: null,
+  }
+}
+
+/** 默认的同步服务地址；自部署时在设置里改成自己的地址 */
+export const DEFAULT_API_BASE = 'https://myriad.zxabinbina.cc.cd'
+
+export function defaultSyncConfig(): SyncConfig {
+  return {
+    enabled: false,
+    apiBase: DEFAULT_API_BASE,
+    clientId: '',
+    clientSecret: '',
+    scopes: defaultSyncScopes(),
+    iconProxy: true,
+    lastSync: 0,
+  }
 }
 
 export function emptyData(): MyriadData {

@@ -13,9 +13,11 @@ import {
 import { computed, ref, watch } from 'vue'
 import { brandToIcon, matchBrand } from '../icons/library'
 import { useStore } from '../state/store'
+import { useSync } from '../state/sync'
 
 const props = defineProps<{ title: string; url?: string; icon: IconSpec }>()
 const store = useStore()
+const sync = useSync()
 
 /** 图标缓存有效期：网站图标 7 天后重新确认，失败结果 3 天后重试 */
 const FAVICON_TTL = 7 * 86400000
@@ -27,7 +29,9 @@ const library = ref<LibraryIcon | null>(null)
 const faviconReady = ref(false)
 
 const host = computed(() => (props.url ? hostnameOf(props.url) : ''))
-const favicon = computed(() => (props.url ? faviconUrl(props.url, store.settings.icons) : null))
+const favicon = computed(() =>
+  props.url ? faviconUrl(props.url, store.settings.icons, 128, sync.iconProxyBase.value) : null,
+)
 
 async function fallback(lowRes = false) {
   // 图标代理 / favicon 失败或分辨率太低 → 图标库自动匹配 → 文字图标
@@ -89,12 +93,7 @@ function resolve() {
 }
 
 watch(
-  () => [
-    props.icon,
-    props.url,
-    store.settings.icons.faviconProvider,
-    store.settings.icons.proxyBase,
-  ],
+  () => [props.icon, props.url, store.settings.icons.faviconProvider, sync.iconProxyBase.value],
   resolve,
   {
     immediate: true,

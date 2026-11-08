@@ -36,30 +36,30 @@ With pointer capture, the movement listeners can remain on the handle:
 
 ```js
 handle.addEventListener('pointerdown', (event) => {
-  if (event.button !== 0 || event.target.closest('button, input, select, textarea, a')) return;
+  if (event.button !== 0 || event.target.closest('button, input, select, textarea, a')) return
 
-  const rect = draggable.getBoundingClientRect();
-  offsetX = event.clientX - rect.left;
-  offsetY = event.clientY - rect.top;
-  handle.setPointerCapture(event.pointerId);
-});
+  const rect = draggable.getBoundingClientRect()
+  offsetX = event.clientX - rect.left
+  offsetY = event.clientY - rect.top
+  handle.setPointerCapture(event.pointerId)
+})
 
 handle.addEventListener('pointermove', (event) => {
-  if (!handle.hasPointerCapture(event.pointerId)) return;
-  handle.classList.add('dragging');
-  moveTo(event.clientX - offsetX, event.clientY - offsetY);
-});
+  if (!handle.hasPointerCapture(event.pointerId)) return
+  handle.classList.add('dragging')
+  moveTo(event.clientX - offsetX, event.clientY - offsetY)
+})
 
 handle.addEventListener('lostpointercapture', () => {
-  handle.classList.remove('dragging');
-});
+  handle.classList.remove('dragging')
+})
 
 function moveTo(left, top) {
-  const maxLeft = Math.max(0, window.innerWidth - draggable.offsetWidth);
-  const maxTop = Math.max(0, window.innerHeight - draggable.offsetHeight);
+  const maxLeft = Math.max(0, window.innerWidth - draggable.offsetWidth)
+  const maxTop = Math.max(0, window.innerHeight - draggable.offsetHeight)
 
-  draggable.style.left = `${Math.max(0, Math.min(left, maxLeft))}px`;
-  draggable.style.top = `${Math.max(0, Math.min(top, maxTop))}px`;
+  draggable.style.left = `${Math.max(0, Math.min(left, maxLeft))}px`
+  draggable.style.top = `${Math.max(0, Math.min(top, maxTop))}px`
 }
 ```
 

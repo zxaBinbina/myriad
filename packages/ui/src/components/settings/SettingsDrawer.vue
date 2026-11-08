@@ -15,20 +15,26 @@ import {
   type ShortcutAction,
   type TriState,
   appendData,
+  type ApiErrorCode,
+  type BackupInfo,
+  SYNC_SCOPES,
   type WallpaperSpec,
 } from '@myriad/core'
-import { Download, ExternalLink, Plus, Trash2, Upload, X } from '@lucide/vue'
+import { Download, ExternalLink, History, Plus, RefreshCw, Trash2, Upload, X } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from '../../i18n'
 import { blobStore } from '../../state/blobs'
 import { useStore } from '../../state/store'
+import { useSync } from '../../state/sync'
 import MSeg from '../base/MSeg.vue'
 import MSwitch from '../base/MSwitch.vue'
 import MRange from './MRange.vue'
 import SettingRow from './SettingRow.vue'
 
 const store = useStore()
+const sync = useSync()
 const { m, t, lang } = useI18n()
+const logoUrl = new URL('../../assets/logo.svg', import.meta.url).href
 const s = store.settings
 
 const SECTIONS = [
@@ -40,6 +46,7 @@ const SECTIONS = [
   'search',
   'shortcuts',
   'clock',
+  'sync',
   'data',
   'about',
 ] as const
@@ -104,7 +111,19 @@ const comboLabel = (c: ComboKey) => {
 }
 type WallSource = 'none' | WallpaperSpec['source']
 const wallSourceOptions = computed(() =>
-  (['none', 'upload', 'url', 'bing', 'picsum'] as WallSource[]).map((v) => ({
+  (
+    [
+      'none',
+      'upload',
+      'url',
+      'bing',
+      'picsum',
+      ...(sync.canUnsplash.value ||
+      Object.values(s.background.wallpapers).some((w) => w?.source === 'unsplash')
+        ? (['unsplash'] as const)
+        : []),
+    ] as WallSource[]
+  ).map((v) => ({
     value: v,
     label: m.value.settings.background.sources[v],
   })),
@@ -114,7 +133,10 @@ function wallSource(c: ComboKey): WallSource {
 }
 async function setWallSource(c: ComboKey, v: WallSource) {
   const old = s.background.wallpapers[c]
-  if (old?.source === 'upload' && v !== 'upload') void blobStore.delete(old.blobKey)
+  if (old?.source === 'upload' && v !== 'upload') {
+    void blobStore.delete(old.blobKey)
+    void sync.deleteBlob(old.blobKey)
+  }
   if (v === 'none') delete s.background.wallpapers[c]
   else if (v === 'url')
     s.background.wallpapers[c] = { source: 'url', url: old?.source === 'url' ? old.url : '' }
@@ -137,7 +159,18 @@ async function onWallFile(e: Event) {
   const old = s.background.wallpapers[c]
   const key = `wallpaper.${c}.${createId()}`
   await blobStore.put(key, file)
-  if (old?.source === 'upload') void blobStore.delete(old.blobKey)
+  if (old?.source === 'upload') {
+    void blobStore.delete(old.blobKey)
+    void sync.deleteBlob(old.blobKey)
+  }
+  // 同步背景时把文件传到服务器，其他设备按需下载
+  if (sync.canBlobs.value && store.local.sync.scopes.background) {
+    sync
+      .uploadBlob(key, file)
+      .catch(() =>
+        store.toast(t('sync.connectFailed', { reason: m.value.sync.errors['too-large'] }), 'error'),
+      )
+  }
   s.background.wallpapers[c] = { source: 'upload', blobKey: key, name: file.name }
   s.background.mode = 'wallpaper'
 }
@@ -268,6 +301,7 @@ async function onImportFile(e: Event) {
   if (!file) return
   try {
     const parsed = parseBackup(await file.text())
+    await sync.backupBefore('import')
     if (parsed.data) {
       if (importMode.value === 'replace') store.replaceData(parsed.data)
       else appendData(store.data, parsed.data)
@@ -327,6 +361,155 @@ function clearHistory() {
 function refreshIcons() {
   store.local.iconCache = {}
   store.toast(m.value.settings.icons.refreshed, 'success')
+}
+
+/* ---------------- 同步 ---------------- */
+const sc = store.local.sync
+const syncBusy = ref(false)
+
+function errorText(code: ApiErrorCode | '') {
+  return code ? m.value.sync.errors[code] : ''
+}
+
+function relTime(at: number) {
+  if (!at) return ''
+  const diff = (at - Date.now()) / 1000
+  const rtf = new Intl.RelativeTimeFormat(lang.value, { numeric: 'auto' })
+  const abs = Math.abs(diff)
+  if (abs < 45) return rtf.format(Math.round(diff), 'second')
+  if (abs < 2700) return rtf.format(Math.round(diff / 60), 'minute')
+  if (abs < 79200) return rtf.format(Math.round(diff / 3600), 'hour')
+  return new Date(at).toLocaleString(lang.value)
+}
+
+function dateTime(at: number) {
+  return new Date(at).toLocaleString(lang.value, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+/** 点击「连接」：先在用户操作中申请主机权限，再连接 */
+function onConnect() {
+  const permission = sync.requestPermission()
+  syncBusy.value = true
+  void (async () => {
+    try {
+      if (!(await permission)) {
+        store.toast(m.value.sync.permissionDenied, 'error')
+        return
+      }
+      const ok = await sync.connect()
+      if (ok) {
+        store.toast(t('sync.connected', { identity: sync.state.identity }), 'success')
+        void loadBackups()
+      } else if (sync.state.error) {
+        store.toast(t('sync.connectFailed', { reason: errorText(sync.state.error) }), 'error')
+      }
+    } finally {
+      syncBusy.value = false
+    }
+  })()
+}
+
+async function onDisconnect() {
+  if (
+    await store.confirm(m.value.sync.disconnectConfirm, {
+      title: m.value.sync.disconnect,
+      okText: m.value.sync.disconnect,
+      danger: true,
+    })
+  )
+    await sync.disconnect()
+}
+
+/* 备份 */
+const backups = ref<BackupInfo[]>([])
+const backupCfg = ref({ enabled: true, keep: 2 })
+const KEEP_OPTIONS = [1, 2, 3, 5, 7, 14, 30]
+
+async function loadBackups() {
+  if (!sync.canBackups.value || !sync.api) return
+  try {
+    const r = await sync.api.listBackups()
+    backups.value = r.backups
+    backupCfg.value = r.config
+  } catch {
+    /* 忽略：状态栏会显示错误 */
+  }
+}
+
+watch(
+  () => [section.value, sync.canBackups.value, store.ui.settingsOpen] as const,
+  ([sec, can, open]) => {
+    if (sec === 'sync' && can && open) void loadBackups()
+  },
+  { immediate: true },
+)
+
+async function saveBackupCfg() {
+  if (!sync.api) return
+  try {
+    backupCfg.value = (await sync.api.setBackupConfig(backupCfg.value)).config
+    await loadBackups()
+  } catch (e) {
+    store.toast(errorText((e as { code?: ApiErrorCode }).code ?? 'network'), 'error')
+  }
+}
+
+async function backupNow() {
+  if (!sync.api) return
+  syncBusy.value = true
+  try {
+    await sync.syncNow()
+    await sync.api.createBackup('manual')
+    store.toast(m.value.sync.backupDone, 'success')
+    await loadBackups()
+  } catch (e) {
+    store.toast(errorText((e as { code?: ApiErrorCode }).code ?? 'network'), 'error')
+  } finally {
+    syncBusy.value = false
+  }
+}
+
+async function rollbackTo(b: BackupInfo) {
+  const ok = await store.confirm(t('sync.rollbackConfirm', { time: dateTime(b.at) }), {
+    title: m.value.sync.rollback,
+    okText: m.value.sync.rollback,
+    danger: true,
+  })
+  if (!ok) return
+  syncBusy.value = true
+  try {
+    await sync.rollback(b.id)
+    store.toast(m.value.sync.rolledBack, 'success')
+    await loadBackups()
+  } catch (e) {
+    store.toast(errorText((e as { code?: ApiErrorCode }).code ?? 'network'), 'error')
+  } finally {
+    syncBusy.value = false
+  }
+}
+
+async function removeBackup(b: BackupInfo) {
+  const ok = await store.confirm(t('sync.deleteBackupConfirm', { time: dateTime(b.at) }), {
+    danger: true,
+    okText: m.value.common.delete,
+  })
+  if (!ok || !sync.api) return
+  await sync.api.deleteBackup(b.id).catch(() => undefined)
+  await loadBackups()
+}
+
+function formatSize(n: number) {
+  return n < 1024
+    ? `${n} B`
+    : n < 1048576
+      ? `${(n / 1024).toFixed(1)} KB`
+      : `${(n / 1048576).toFixed(1)} MB`
 }
 
 function close() {
@@ -472,6 +655,12 @@ function close() {
                   :placeholder="m.settings.background.urlPlaceholder"
                   @change="setWallUrl(c, ($event.target as HTMLInputElement).value)"
                 />
+                <p
+                  v-if="wallSource(c) === 'unsplash' && !sync.canUnsplash.value"
+                  class="m-wall__file"
+                >
+                  {{ m.settings.background.unsplashNote }}
+                </p>
                 <div v-if="wallSource(c) === 'upload'" class="m-wall__file">
                   <span>{{ wallName(c) }}</span>
                   <button
@@ -898,6 +1087,156 @@ function close() {
             </SettingRow>
           </section>
 
+          <!-- 同步 -->
+          <section v-else-if="section === 'sync'">
+            <p class="m-drawer__note">{{ m.sync.intro }}</p>
+            <div class="m-sync-status" :class="`is-${sync.state.status}`" role="status">
+              <span class="m-sync-status__dot" aria-hidden="true" />
+              <div class="m-sync-status__text">
+                <strong>{{ m.sync.status[sync.state.status] }}</strong>
+                <span v-if="sync.state.status === 'error'">{{ errorText(sync.state.error) }}</span>
+                <span v-else-if="sync.state.identity && sync.active.value">
+                  {{ sync.state.identity }}
+                  <template v-if="sc.lastSync">
+                    · {{ t('sync.lastSync', { time: relTime(sc.lastSync) }) }}</template
+                  >
+                  <template v-if="sync.state.pending"> · {{ m.sync.pending }}</template>
+                </span>
+              </div>
+              <button
+                v-if="sync.active.value"
+                type="button"
+                class="m-icon-btn"
+                :aria-label="m.sync.syncNow"
+                :title="m.sync.syncNow"
+                :disabled="sync.state.status === 'syncing'"
+                @click="sync.syncNow()"
+              >
+                <RefreshCw :size="16" :class="{ 'm-spin': sync.state.status === 'syncing' }" />
+              </button>
+            </div>
+
+            <SettingRow :label="m.sync.server" :desc="m.sync.serverDesc" stacked>
+              <input
+                v-model.trim="sc.apiBase"
+                class="m-input"
+                type="url"
+                name="myriad-api-base"
+                inputmode="url"
+                spellcheck="false"
+                autocomplete="off"
+                :disabled="sc.enabled"
+              />
+            </SettingRow>
+            <SettingRow :label="m.sync.token" :desc="m.sync.tokenDesc" stacked>
+              <div class="m-sync-token">
+                <input
+                  v-model.trim="sc.clientId"
+                  class="m-input"
+                  name="myriad-client-id"
+                  :placeholder="m.sync.clientId"
+                  :aria-label="m.sync.clientId"
+                  spellcheck="false"
+                  autocomplete="off"
+                  :disabled="sc.enabled"
+                />
+                <input
+                  v-model.trim="sc.clientSecret"
+                  class="m-input"
+                  type="password"
+                  name="myriad-client-secret"
+                  :placeholder="m.sync.clientSecret"
+                  :aria-label="m.sync.clientSecret"
+                  autocomplete="off"
+                  :disabled="sc.enabled"
+                />
+              </div>
+            </SettingRow>
+            <div class="m-sync-actions">
+              <button
+                v-if="!sc.enabled"
+                type="button"
+                class="m-btn m-btn--primary"
+                :disabled="syncBusy || !sc.apiBase"
+                @click="onConnect"
+              >
+                {{ sync.state.status === 'connecting' ? m.sync.status.connecting : m.sync.connect }}
+              </button>
+              <button v-else type="button" class="m-btn m-btn--danger" @click="onDisconnect">
+                {{ m.sync.disconnect }}
+              </button>
+            </div>
+
+            <template v-if="sc.enabled">
+              <h3 class="m-drawer__sub">{{ m.sync.scopes }}</h3>
+              <p class="m-drawer__note">{{ m.sync.scopesDesc }}</p>
+              <SettingRow
+                v-for="scope in SYNC_SCOPES"
+                :key="scope"
+                :label="m.sync.scopeNames[scope]"
+              >
+                <MSwitch v-model="sc.scopes[scope]" :label="m.sync.scopeNames[scope]" />
+              </SettingRow>
+              <SettingRow :label="m.sync.iconProxy" :desc="m.sync.iconProxyDesc">
+                <MSwitch v-model="sc.iconProxy" :label="m.sync.iconProxy" />
+              </SettingRow>
+
+              <template v-if="sync.canBackups.value">
+                <h3 class="m-drawer__sub">{{ m.sync.backups }}</h3>
+                <p class="m-drawer__note">{{ m.sync.backupsDesc }}</p>
+                <SettingRow :label="m.sync.backupEnabled">
+                  <MSwitch
+                    v-model="backupCfg.enabled"
+                    :label="m.sync.backupEnabled"
+                    @update:model-value="saveBackupCfg"
+                  />
+                </SettingRow>
+                <SettingRow :label="m.sync.backupKeep">
+                  <select
+                    v-model.number="backupCfg.keep"
+                    class="m-select m-select--auto"
+                    name="myriad-backup-keep"
+                    @change="saveBackupCfg"
+                  >
+                    <option v-for="n in KEEP_OPTIONS" :key="n" :value="n">{{ n }}</option>
+                  </select>
+                </SettingRow>
+                <ul v-if="backups.length" class="m-backups">
+                  <li v-for="b in backups" :key="b.id" class="m-backup">
+                    <span class="m-backup__badge">{{ m.sync.backupReasons[b.reason] }}</span>
+                    <span class="m-backup__time">{{ dateTime(b.at) }}</span>
+                    <span class="m-backup__size">{{ formatSize(b.size) }}</span>
+                    <button
+                      type="button"
+                      class="m-btn m-btn--small"
+                      :disabled="syncBusy"
+                      @click="rollbackTo(b)"
+                    >
+                      <History :size="14" />{{ m.sync.rollback }}
+                    </button>
+                    <button
+                      type="button"
+                      class="m-icon-btn"
+                      :aria-label="m.common.delete"
+                      @click="removeBackup(b)"
+                    >
+                      <Trash2 :size="15" />
+                    </button>
+                  </li>
+                </ul>
+                <p v-else class="m-drawer__note">{{ m.sync.backupNone }}</p>
+                <button
+                  type="button"
+                  class="m-btn m-btn--small"
+                  :disabled="syncBusy"
+                  @click="backupNow"
+                >
+                  {{ m.sync.backupNow }}
+                </button>
+              </template>
+            </template>
+          </section>
+
           <!-- 数据 -->
           <section v-else-if="section === 'data'">
             <SettingRow
@@ -963,6 +1302,7 @@ function close() {
 
           <!-- 关于 -->
           <section v-else class="m-about">
+            <img class="m-about__logo" :src="logoUrl" alt="" width="72" height="72" />
             <p class="m-about__name">{{ m.app.name }} <small>Myriad</small></p>
             <p class="m-about__slogan">{{ m.app.slogan }}</p>
             <p class="m-about__meta">
@@ -1199,6 +1539,104 @@ function close() {
 .m-zone .m-input {
   flex: 1;
 }
+.m-drawer__sub {
+  margin: 22px 0 2px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.m-sync-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--secondary-surface);
+}
+.m-sync-status__dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.m-sync-status.is-idle .m-sync-status__dot {
+  background: var(--status-success, #3fb37f);
+}
+.m-sync-status.is-syncing .m-sync-status__dot,
+.m-sync-status.is-connecting .m-sync-status__dot {
+  background: var(--blue);
+}
+.m-sync-status.is-offline .m-sync-status__dot {
+  background: var(--status-warning, #e0a43a);
+}
+.m-sync-status.is-error .m-sync-status__dot {
+  background: var(--status-danger);
+}
+.m-sync-status__text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+}
+.m-sync-status__text span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+.m-sync-token {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+.m-sync-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 0 4px;
+}
+.m-spin {
+  animation: m-spin 1s linear infinite;
+}
+@keyframes m-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+.m-backups {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.m-backup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 12.5px;
+}
+.m-backup__badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--tag-surface);
+  color: var(--blue);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.m-backup__time {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+}
+.m-backup__size {
+  color: var(--muted);
+  font-size: 11.5px;
+}
 .m-about {
   display: grid;
   justify-items: start;
@@ -1207,6 +1645,12 @@ function close() {
 }
 .m-about p {
   margin: 0;
+}
+.m-about__logo {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 4px;
 }
 .m-about__name {
   font-size: 28px;
@@ -1251,6 +1695,9 @@ function close() {
   transform: translateX(calc(100% + 24px));
 }
 @media (prefers-reduced-motion: reduce) {
+  .m-spin {
+    animation: none;
+  }
   .m-drawer-enter-active,
   .m-drawer-leave-active,
   .m-drawer-enter-active .m-drawer,

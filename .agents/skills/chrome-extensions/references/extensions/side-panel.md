@@ -3,6 +3,7 @@
 ## Setup
 
 Add to manifest.json:
+
 ```json
 {
   "permissions": ["sidePanel"],
@@ -25,8 +26,8 @@ and use `chrome.action.onClicked` to open the side panel:
 ```js
 // service-worker.js
 chrome.action.onClicked.addListener(async (tab) => {
-  await chrome.sidePanel.open({ windowId: tab.windowId });
-});
+  await chrome.sidePanel.open({ windowId: tab.windowId })
+})
 ```
 
 ⚠️ `chrome.action.onClicked` only fires when there is NO `default_popup` set. If you have both
@@ -39,22 +40,23 @@ trigger.
 // Open from a context menu item
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'open-panel') {
-    await chrome.sidePanel.open({ windowId: tab.windowId });
+    await chrome.sidePanel.open({ windowId: tab.windowId })
   }
-});
+})
 
 // Open from a keyboard shortcut (defined in manifest commands)
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === 'open-side-panel') {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    await chrome.sidePanel.open({ windowId: tab.windowId });
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    await chrome.sidePanel.open({ windowId: tab.windowId })
   }
-});
+})
 ```
 
 You can also open it for a specific tab:
+
 ```js
-await chrome.sidePanel.open({ tabId: tab.id });
+await chrome.sidePanel.open({ tabId: tab.id })
 ```
 
 ### Simplest: Auto-open via setPanelBehavior
@@ -64,7 +66,7 @@ as a one-liner instead of an `onClicked` listener:
 
 ```js
 // service-worker.js
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
 ```
 
 ⚠️ **The property is `openPanelOnActionClick` — NOT `openPanelOnActionIconClick`.**
@@ -81,10 +83,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     await chrome.sidePanel.setOptions({
       tabId,
       path: 'sidepanel/github-panel.html',
-      enabled: true
-    });
+      enabled: true,
+    })
   }
-});
+})
 ```
 
 ## Communication with Side Panel
@@ -97,9 +99,9 @@ To get data from the active tab's content script:
 ```js
 // In side panel JS
 async function getPageContent() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_CONTENT' });
-  return response;
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_CONTENT' })
+  return response
 }
 ```
 
@@ -108,18 +110,18 @@ Or use `chrome.scripting.executeScript` from the side panel (requires `scripting
 ```js
 const [{ result }] = await chrome.scripting.executeScript({
   target: { tabId: tab.id },
-  func: () => document.body.innerText
-});
+  func: () => document.body.innerText,
+})
 ```
 
 ## Side Panel vs Popup
 
-| Feature | Side Panel | Popup |
-|---------|-----------|-------|
-| Stays open | Yes | Closes when clicking away |
-| Resizable | Yes (by user) | Fixed size |
-| Coexists with page | Yes (side by side) | Overlays page |
-| Use when | Extended interaction, reading | Quick actions, settings |
+| Feature            | Side Panel                    | Popup                     |
+| ------------------ | ----------------------------- | ------------------------- |
+| Stays open         | Yes                           | Closes when clicking away |
+| Resizable          | Yes (by user)                 | Fixed size                |
+| Coexists with page | Yes (side by side)            | Overlays page             |
+| Use when           | Extended interaction, reading | Quick actions, settings   |
 
 ## Important Notes
 

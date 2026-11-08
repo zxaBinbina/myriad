@@ -14,7 +14,7 @@ When an element moves in or out of the top layer, it must transition the `overla
 
 ### 3. Entry Animations with `@starting-style`
 
-Use the `@starting-style` at-rule to define the styles an element should transition *from* when it is first rendered or its `display` changes from `none`.
+Use the `@starting-style` at-rule to define the styles an element should transition _from_ when it is first rendered or its `display` changes from `none`.
 
 ### 4. Animating the Backdrop
 
@@ -118,24 +118,24 @@ Firefox 129+ parses `transition-behavior: allow-discrete` (`CSS.supports('transi
 To reliably detect discrete `display` transition support, probe whether a temporary element's computed `display` remains visible when transitioned to `none` rather than relying solely on `CSS.supports('transition-behavior', 'allow-discrete')`:
 
 ```javascript
-let supportsDisplayTransition;
+let supportsDisplayTransition
 function canTransitionDisplay() {
-  if (supportsDisplayTransition !== undefined) return supportsDisplayTransition;
+  if (supportsDisplayTransition !== undefined) return supportsDisplayTransition
   if (!window.CSS?.supports?.('transition-behavior', 'allow-discrete') || !document.body) {
-    return false;
+    return false
   }
-  const probe = document.createElement('div');
+  const probe = document.createElement('div')
   // The shorthand is intentional here: browsers that don't parse allow-discrete
   // drop the whole declaration, so display: none applies instantly and the probe
   // correctly returns false. !important guards against global reduced-motion
   // resets like `* { transition: none !important }`.
-  probe.style.cssText = 'transition: display 1s allow-discrete !important; display: block;';
-  document.body.appendChild(probe);
-  getComputedStyle(probe).display;
-  probe.style.display = 'none';
-  supportsDisplayTransition = getComputedStyle(probe).display === 'block';
-  probe.remove();
-  return supportsDisplayTransition;
+  probe.style.cssText = 'transition: display 1s allow-discrete !important; display: block;'
+  document.body.appendChild(probe)
+  getComputedStyle(probe).display
+  probe.style.display = 'none'
+  supportsDisplayTransition = getComputedStyle(probe).display === 'block'
+  probe.remove()
+  return supportsDisplayTransition
 }
 ```
 
@@ -169,24 +169,24 @@ Exit animations require both `overlay` and discrete `display` transition support
 // Evaluate lazily: canTransitionDisplay() needs document.body, so a top-level
 // const would be permanently false if this script runs in <head>.
 function supportsTopLayerExit() {
-  return window.CSS?.supports?.('overlay', 'auto') && canTransitionDisplay();
+  return window.CSS?.supports?.('overlay', 'auto') && canTransitionDisplay()
 }
 
 async function closeTopLayer(element) {
   if (!supportsTopLayerExit()) {
-    element.setAttribute('data-closing', '');
-    const animations = element.getAnimations({ subtree: true });
+    element.setAttribute('data-closing', '')
+    const animations = element.getAnimations({ subtree: true })
     if (animations.length > 0) {
       await Promise.race([
         Promise.allSettled(animations.map((a) => a.finished)),
         new Promise((r) => setTimeout(r, 2000)),
-      ]);
+      ])
     }
-    if (!element.hasAttribute('data-closing')) return;
-    element.removeAttribute('data-closing');
+    if (!element.hasAttribute('data-closing')) return
+    element.removeAttribute('data-closing')
   }
 
-  element.close();
+  element.close()
   // Or for popover:
   // element.hidePopover();
 }
@@ -194,9 +194,9 @@ async function closeTopLayer(element) {
 // Route native close requests (Esc, closedby light dismiss) through the same
 // helper so they animate too, instead of closing instantly.
 dialog.addEventListener('cancel', (event) => {
-  event.preventDefault();
-  closeTopLayer(dialog);
-});
+  event.preventDefault()
+  closeTopLayer(dialog)
+})
 ```
 
 Popover light dismiss and `popovertarget` toggles cannot be intercepted (`beforetoggle` is only cancelable when opening), so in browsers that need the fallback those exits are instant. Provide an explicit close control that calls `closeTopLayer()` if the exit animation matters.
@@ -214,8 +214,8 @@ With a bundler or import map:
 
 ```js
 // MANDATORY: Feature detect 'popover' on HTMLElement.prototype.
-if (!("popover" in HTMLElement.prototype)) {
-  import("@oddbird/popover-polyfill");
+if (!('popover' in HTMLElement.prototype)) {
+  import('@oddbird/popover-polyfill')
 }
 ```
 
@@ -223,8 +223,8 @@ Without a bundler, import from a CDN inside a `<script type="module">`:
 
 ```html
 <script type="module">
-  if (!("popover" in HTMLElement.prototype)) {
-    import("https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js");
+  if (!('popover' in HTMLElement.prototype)) {
+    import('https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js')
   }
 </script>
 ```

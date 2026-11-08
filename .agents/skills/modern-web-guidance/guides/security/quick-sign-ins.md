@@ -46,12 +46,12 @@ router.post('/api/login/options', (req, res) => {
     challenge: serverGeneratedBase64UrlChallenge, // High-entropy random challenge stored in session
     rpId: 'example.com',
     userVerification: 'preferred',
-  };
+  }
 
-  req.session.challenge = options.challenge;
-  req.session.expectedUserVerification = 'preferred';
-  return res.json(options);
-});
+  req.session.challenge = options.challenge
+  req.session.expectedUserVerification = 'preferred'
+  return res.json(options)
+})
 ```
 
 ### Dual credential verification endpoints
@@ -67,52 +67,52 @@ Because `navigator.credentials.get({ password: true, publicKey, uiMode: 'immedia
 
 1. **Request both passkeys and passwords**: Decode the server options using `PublicKeyCredential.parseRequestOptionsFromJSON()` and call `navigator.credentials.get()` inside a user-initiated click handler with `password: true`, `publicKey`, and `uiMode: 'immediate'` (without passing `signal`).
 2. **Branch verification by `cred.type`**:
-    - If `cred.type === 'public-key'`, serialize the assertion with `cred.toJSON()` and POST it to your WebAuthn verification endpoint. When the server responds with HTTP `404`, call `PublicKeyCredential.signalUnknownCredential({ rpId: publicKey.rpId, credentialId: encoded.id })`.
-    - If `cred.type === 'password'`, POST `{ username: cred.id, password: cred.password }` to your password verification endpoint.
+   - If `cred.type === 'public-key'`, serialize the assertion with `cred.toJSON()` and POST it to your WebAuthn verification endpoint. When the server responds with HTTP `404`, call `PublicKeyCredential.signalUnknownCredential({ rpId: publicKey.rpId, credentialId: encoded.id })`.
+   - If `cred.type === 'password'`, POST `{ username: cred.id, password: cred.password }` to your password verification endpoint.
 3. **Handle `NotAllowedError` when no local credentials exist**: Catch `NotAllowedError` (thrown immediately when no local passkeys or saved passwords exist on the device, or when the user dismisses the chooser) and transition to your standard sign-in flow (such as opening an inline sign-in dialog or navigating to `/signin` with a return URL).
 
 ```javascript
-let isAuthenticating = false;
+let isAuthenticating = false
 
 async function authenticateWithImmediateUi() {
-  const optionsResponse = await fetch('/api/login/options', { method: 'POST' });
+  const optionsResponse = await fetch('/api/login/options', { method: 'POST' })
   if (!optionsResponse.ok) {
-    throw new Error('Failed to fetch authentication options');
+    throw new Error('Failed to fetch authentication options')
   }
-  const optionsJSON = await optionsResponse.json();
-  const publicKey = PublicKeyCredential.parseRequestOptionsFromJSON(optionsJSON);
+  const optionsJSON = await optionsResponse.json()
+  const publicKey = PublicKeyCredential.parseRequestOptionsFromJSON(optionsJSON)
 
   // MANDATORY: Request both password and publicKey with uiMode: 'immediate' and NO signal parameter
   const cred = await navigator.credentials.get({
     password: true,
     publicKey,
     uiMode: 'immediate',
-  });
+  })
 
   if (!cred) {
-    throw new DOMException('No credential returned', 'NotAllowedError');
+    throw new DOMException('No credential returned', 'NotAllowedError')
   }
 
   if (cred.type === 'public-key') {
-    const encoded = cred.toJSON();
+    const encoded = cred.toJSON()
     const verifyResponse = await fetch('/api/login/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(encoded),
-    });
+    })
 
     if (verifyResponse.status === 404) {
       await PublicKeyCredential.signalUnknownCredential({
         rpId: publicKey.rpId || window.location.hostname,
         credentialId: encoded.id, // Base64URL-encoded credential ID string
-      });
-      throw new Error('Passkey credential is no longer recognized by the server');
+      })
+      throw new Error('Passkey credential is no longer recognized by the server')
     }
 
     if (!verifyResponse.ok) {
-      throw new Error('Passkey verification failed');
+      throw new Error('Passkey verification failed')
     }
-    return await verifyResponse.json();
+    return await verifyResponse.json()
   }
 
   if (cred.type === 'password') {
@@ -123,50 +123,50 @@ async function authenticateWithImmediateUi() {
         username: cred.id,
         password: cred.password,
       }),
-    });
+    })
 
     if (!verifyResponse.ok) {
-      throw new Error('Password verification failed');
+      throw new Error('Password verification failed')
     }
-    return await verifyResponse.json();
+    return await verifyResponse.json()
   }
 
-  throw new Error(`Unsupported credential type: ${cred.type}`);
+  throw new Error(`Unsupported credential type: ${cred.type}`)
 }
 
 // Example: Intercepting an inline micro-action (Favorite button) or Header Sign-in click
-const favoriteButton = document.getElementById('favorite-btn');
+const favoriteButton = document.getElementById('favorite-btn')
 
 favoriteButton.addEventListener('click', async (event) => {
-  event.preventDefault();
-  if (isAuthenticating) return;
+  event.preventDefault()
+  if (isAuthenticating) return
 
   // If already signed in, toggle the micro-action state immediately
   if (document.body.dataset.signedIn === 'true') {
-    const nextPressed = favoriteButton.getAttribute('aria-pressed') !== 'true';
-    favoriteButton.setAttribute('aria-pressed', String(nextPressed));
-    return;
+    const nextPressed = favoriteButton.getAttribute('aria-pressed') !== 'true'
+    favoriteButton.setAttribute('aria-pressed', String(nextPressed))
+    return
   }
 
-  isAuthenticating = true;
+  isAuthenticating = true
   try {
-    const user = await authenticateWithImmediateUi();
+    const user = await authenticateWithImmediateUi()
     // Complete the user's intended action immediately
-    document.body.dataset.signedIn = 'true';
-    favoriteButton.setAttribute('aria-pressed', 'true');
-    updateHeaderUserState(user);
+    document.body.dataset.signedIn = 'true'
+    favoriteButton.setAttribute('aria-pressed', 'true')
+    updateHeaderUserState(user)
   } catch (err) {
     if (err.name === 'NotAllowedError') {
       // No local credentials available or user dismissed dialog:
       // transition smoothly to fallback sign-in UI or redirect with return URL
-      showFallbackSignInUi({ returnAction: 'favorite' });
-      return;
+      showFallbackSignInUi({ returnAction: 'favorite' })
+      return
     }
-    console.error('Authentication error:', err);
+    console.error('Authentication error:', err)
   } finally {
-    isAuthenticating = false;
+    isAuthenticating = false
   }
-});
+})
 ```
 
 ## Fallback strategies
@@ -178,22 +178,22 @@ favoriteButton.addEventListener('click', async (event) => {
 ```javascript
 async function isImmediateUiSupported() {
   if (!window.PublicKeyCredential || !PublicKeyCredential.getClientCapabilities) {
-    return false;
+    return false
   }
   try {
-    const capabilities = await PublicKeyCredential.getClientCapabilities();
-    return Boolean(capabilities?.immediateGet);
+    const capabilities = await PublicKeyCredential.getClientCapabilities()
+    return Boolean(capabilities?.immediateGet)
   } catch {
-    return false;
+    return false
   }
 }
 
 async function authenticateWithImmediateUi() {
   // MANDATORY: Check immediateGet support so unsupported browsers do not open a modal QR dialog
-  const supported = await isImmediateUiSupported();
+  const supported = await isImmediateUiSupported()
   if (!supported) {
     // Throw NotAllowedError so the caller's single catch path treats "unsupported" like "no local credentials"
-    throw new DOMException('Immediate UI mode is not supported', 'NotAllowedError');
+    throw new DOMException('Immediate UI mode is not supported', 'NotAllowedError')
   }
   // Proceed with fetching options and calling navigator.credentials.get({ password: true, publicKey, uiMode: 'immediate' })
 }
@@ -207,7 +207,7 @@ Supported by: Chrome 133 (Feb 2025), Edge 133 (Feb 2025), Firefox 135 (Feb 2025)
 Always install `'webauthn-polyfills'` and import it in your client module so `PublicKeyCredential.getClientCapabilities()` is available whenever `PublicKeyCredential` is supported:
 
 ```javascript
-import 'webauthn-polyfills';
+import 'webauthn-polyfills'
 ```
 
 ### Password credentials fallback
@@ -228,7 +228,7 @@ Supported by: Chrome 129 (Sep 2024), Edge 129 (Sep 2024), Firefox 119 (Oct 2023)
 Always install `'webauthn-polyfills'` and import it in the client bundle so `PublicKeyCredential.parseRequestOptionsFromJSON()` and `PublicKeyCredential.prototype.toJSON()` work consistently across browsers supporting `PublicKeyCredential`:
 
 ```javascript
-import 'webauthn-polyfills';
+import 'webauthn-polyfills'
 ```
 
 ### Signal API synchronization fallback

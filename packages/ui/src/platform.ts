@@ -14,6 +14,14 @@ export interface MyriadPlatform {
     request(): Promise<boolean>
     getTree(): Promise<BookmarkNode[]>
   }
+  /**
+   * 访问同步服务所需的主机权限（扩展）。网站版不需要，省略即可。
+   * request 必须在用户操作（点击）中、任何 await 之前调用。
+   */
+  origins?: {
+    has(origin: string): Promise<boolean>
+    request(origin: string): Promise<boolean>
+  }
   /** 扩展：让页面从地址栏取得焦点（会重新加载一次页面） */
   grabFocus?: () => void
   /** 页面是否由 grabFocus 重新加载而来 */

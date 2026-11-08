@@ -57,7 +57,7 @@ Use `<dialog popover>` for a top-layer panel with popover dismissal (`auto` ligh
 <button type="button" popovertarget="find">Find</button>
 <dialog id="find" popover="manual" aria-labelledby="find-title">
   <h2 id="find-title">Find</h2>
-  <input type="search" aria-label="Search">
+  <input type="search" aria-label="Search" />
   <button type="button" popovertarget="find" popovertargetaction="hide">Close</button>
 </dialog>
 ```
@@ -151,14 +151,18 @@ if (!('closedBy' in HTMLDialogElement.prototype)) {
   // Test the pointer position, not event.target: the <dialog> is also the target for its own
   // padding and the gaps between its children, so a target check would close on those clicks
   const outside = (e, dialog) => {
-    const r = dialog.getBoundingClientRect();
-    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
-  };
+    const r = dialog.getBoundingClientRect()
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom
+  }
   for (const dialog of document.querySelectorAll('dialog[closedby="any"]')) {
-    let pressedOutside = false;
-    dialog.addEventListener('pointerdown', (e) => { pressedOutside = outside(e, dialog); });
+    let pressedOutside = false
+    dialog.addEventListener('pointerdown', (e) => {
+      pressedOutside = outside(e, dialog)
+    })
     // Require the press and the release outside, so a text-selection drag that ends on the backdrop does not dismiss
-    dialog.addEventListener('pointerup', (e) => { if (pressedOutside && outside(e, dialog)) dialog.close(); });
+    dialog.addEventListener('pointerup', (e) => {
+      if (pressedOutside && outside(e, dialog)) dialog.close()
+    })
   }
 }
 ```
@@ -181,7 +185,7 @@ If your Baseline target does not include Invoker Commands, keep the same markup 
 ```js
 // MANDATORY: feature detect on HTMLButtonElement.prototype and load only when native support is missing
 if (!('commandForElement' in HTMLButtonElement.prototype)) {
-  import('invokers-polyfill'); // npm install invokers-polyfill
+  import('invokers-polyfill') // npm install invokers-polyfill
 }
 ```
 
@@ -200,8 +204,8 @@ With a bundler or import map:
 
 ```js
 // MANDATORY: Feature detect 'popover' on HTMLElement.prototype.
-if (!("popover" in HTMLElement.prototype)) {
-  import("@oddbird/popover-polyfill");
+if (!('popover' in HTMLElement.prototype)) {
+  import('@oddbird/popover-polyfill')
 }
 ```
 
@@ -209,8 +213,8 @@ Without a bundler, import from a CDN inside a `<script type="module">`:
 
 ```html
 <script type="module">
-  if (!("popover" in HTMLElement.prototype)) {
-    import("https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js");
+  if (!('popover' in HTMLElement.prototype)) {
+    import('https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js')
   }
 </script>
 ```

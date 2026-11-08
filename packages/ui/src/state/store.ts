@@ -121,7 +121,8 @@ export function createStore(platform: MyriadPlatform) {
   )
   const reducedMotion = computed(() => triOn(settings.reducedMotion, systemReduced.value))
   const timeZone = computed(() => effectiveTimeZone(settings.clock.timeZone))
-  const chinaUser = computed(() => isChinaUser())
+  // 浏览器时区在中国，或同步服务按 IP 判断为中国
+  const chinaUser = computed(() => isChinaUser() || local.geo?.country === 'CN')
   const showLunar = computed(() => triOn(settings.clock.lunar, chinaUser.value))
   const showHolidays = computed(() => triOn(settings.clock.holidays, chinaUser.value))
 
@@ -191,6 +192,11 @@ export function createStore(platform: MyriadPlatform) {
   const storage = platform.storage
   const lastBody: Record<string, string> = {}
   const timers: Record<string, ReturnType<typeof setTimeout>> = {}
+  /** 写入存储前的回调（同步模块在这里把修改写进 Yjs 文档并广播给其他标签页） */
+  const persistHooks: ((key: string) => void)[] = []
+  function onPersist(fn: (key: string) => void) {
+    persistHooks.push(fn)
+  }
 
   function persist(key: string, target: { updatedAt: number } | LocalState) {
     clearTimeout(timers[key])
@@ -201,6 +207,7 @@ export function createStore(platform: MyriadPlatform) {
       lastBody[key] = body
       // 直接改原始对象，不触发响应式更新
       if ('updatedAt' in raw) raw.updatedAt = Date.now()
+      for (const fn of persistHooks) fn(key)
       void storage.set(key, JSON.parse(JSON.stringify(raw)))
     }, 250)
   }
@@ -269,9 +276,12 @@ export function createStore(platform: MyriadPlatform) {
       } else if (key === STORAGE_KEYS.local) {
         // 当前分组按标签页独立，其余合并
         const l = loadLocalState(value)
+        lastBody[key] = JSON.stringify({ ...l, activeGroup: local.activeGroup })
         local.searchHistory = l.searchHistory
         local.iconCache = l.iconCache
         local.onboarded = l.onboarded
+        local.sync = l.sync
+        local.geo = l.geo
       }
     })
   }
@@ -315,5 +325,6 @@ export function createStore(platform: MyriadPlatform) {
     openUrl,
     replaceData,
     replaceSettings,
+    onPersist,
   }
 }

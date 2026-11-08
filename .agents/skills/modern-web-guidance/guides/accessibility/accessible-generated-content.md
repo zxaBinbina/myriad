@@ -9,14 +9,16 @@
 **ONLY** use the alt text argument when the text is different than the primary value and is not already present in the DOM. I.e. this is wrong:
 
 HTML:
+
 ```html
 <button class="save">Save</button>
 ```
 
 CSS:
+
 ```css
 button.save::before {
-  content: url(cloud.svg) / "Save";
+  content: url(cloud.svg) / 'Save';
 }
 ```
 
@@ -33,8 +35,8 @@ If your Baseline target includes browsers that do not support the `/` alternativ
 .more-link::after {
   /* Fallback: render the glyph in browsers without `/` support
      (screen readers there will still announce it) */
-  content: " →";
-  content: " →" / "";
+  content: ' →';
+  content: ' →' / '';
 }
 ```
 

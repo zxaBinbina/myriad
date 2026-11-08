@@ -29,18 +29,19 @@ export function isSafeUrl(url: string): boolean {
 }
 
 /**
- * favicon 地址。设置了图标代理（自建服务）时优先使用代理。
- * 代理接口约定：`{base}/v1/icon?url=<网址>&size=<px>`。
+ * favicon 地址。传入图标代理地址（自建同步服务）时优先使用代理。
+ * 代理接口约定：`{proxyBase}/v1/icon?url=<网址>&size=<px>`。
  */
 export function faviconUrl(
   url: string,
-  settings: Pick<IconSettings, 'faviconProvider' | 'proxyBase'>,
+  settings: Pick<IconSettings, 'faviconProvider'>,
   size = 128,
+  proxyBase = '',
 ): string | null {
   const host = hostnameOf(url)
   if (!host) return null
-  if (settings.proxyBase) {
-    return `${settings.proxyBase.replace(/\/+$/, '')}/v1/icon?url=${encodeURIComponent(url)}&size=${size}`
+  if (proxyBase) {
+    return `${proxyBase.replace(/\/+$/, '')}/v1/icon?url=${encodeURIComponent(url)}&size=${size}`
   }
   return providerUrl(settings.faviconProvider, url, host, size)
 }

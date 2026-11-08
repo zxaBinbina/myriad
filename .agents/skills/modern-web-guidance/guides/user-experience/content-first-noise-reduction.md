@@ -96,16 +96,20 @@ Without scroll-state queries, the bar never hides, but it stays compact and usab
 ```js
 // Runs only where scroll-state queries aren't supported. Run it after .top-bar is parsed (for example, in a module script).
 if (!CSS.supports('container-type', 'scroll-state')) {
-  const bar = document.querySelector('.top-bar');
-  let lastY = scrollY;
-  addEventListener('scroll', () => {
-    // Clamp so rubber-band overscroll at the top or bottom doesn't flip the scroll direction.
-    const y = Math.max(0, Math.min(scrollY, document.documentElement.scrollHeight - innerHeight));
-    if (y === lastY) return;
-    // Hide only after scrolling down past the bar's own height, so it doesn't flicker near the top.
-    bar?.classList.toggle('is-hidden', y > lastY && y > bar.offsetHeight);
-    lastY = y;
-  }, { passive: true });
+  const bar = document.querySelector('.top-bar')
+  let lastY = scrollY
+  addEventListener(
+    'scroll',
+    () => {
+      // Clamp so rubber-band overscroll at the top or bottom doesn't flip the scroll direction.
+      const y = Math.max(0, Math.min(scrollY, document.documentElement.scrollHeight - innerHeight))
+      if (y === lastY) return
+      // Hide only after scrolling down past the bar's own height, so it doesn't flicker near the top.
+      bar?.classList.toggle('is-hidden', y > lastY && y > bar.offsetHeight)
+      lastY = y
+    },
+    { passive: true },
+  )
 }
 ```
 
@@ -122,8 +126,8 @@ With a bundler or import map:
 
 ```js
 // MANDATORY: Feature detect 'popover' on HTMLElement.prototype.
-if (!("popover" in HTMLElement.prototype)) {
-  import("@oddbird/popover-polyfill");
+if (!('popover' in HTMLElement.prototype)) {
+  import('@oddbird/popover-polyfill')
 }
 ```
 
@@ -131,8 +135,8 @@ Without a bundler, import from a CDN inside a `<script type="module">`:
 
 ```html
 <script type="module">
-  if (!("popover" in HTMLElement.prototype)) {
-    import("https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js");
+  if (!('popover' in HTMLElement.prototype)) {
+    import('https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js')
   }
 </script>
 ```

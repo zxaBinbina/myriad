@@ -9,7 +9,7 @@ Add the boolean `switch` attribute to a standard checkbox input:
 ```html
 <label>
   Enable notifications
-  <input id="notifications" type="checkbox" switch>
+  <input id="notifications" type="checkbox" switch />
 </label>
 ```
 
@@ -21,13 +21,13 @@ Add the boolean `switch` attribute to a standard checkbox input:
 Customize the control's highlight color using `accent-color` (see `brand-consistent-forms` (via `npx -y modern-web-guidance@latest retrieve "brand-consistent-forms"`)) and ensure visible focus styling:
 
 ```css
-input[type="checkbox"][switch] {
+input[type='checkbox'][switch] {
   accent-color: var(--accent-color, #1769e0);
   margin: 0;
   cursor: pointer;
 }
 
-input[type="checkbox"][switch]:focus-visible {
+input[type='checkbox'][switch]:focus-visible {
   outline: 3px solid var(--focus-color, #ff8c00);
   outline-offset: 4px;
 }
@@ -47,7 +47,7 @@ Use the package-loading approach appropriate to your project. The example below 
 
 ```javascript
 if (!('switch' in HTMLInputElement.prototype)) {
-  import('input-switch-polyfill');
+  import('input-switch-polyfill')
 }
 ```
 
