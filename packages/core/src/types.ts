@@ -275,6 +275,11 @@ export interface SyncConfig {
   clientSecret: string
   /** 各范围是否同步；关闭的范围只在本机生效 */
   scopes: SyncScopes
+  /**
+   * 单独设为「仅本机」的设置项路径（相对 MyriadSettings，`/` 分隔，数组元素用 `#id`），
+   * 如 `theme`、`clock/hour12`。这些项不上传，也不接收其他设备的修改。
+   */
+  localOnly: string[]
   /** 已连接时用同步服务的图标代理抓取高清图标 */
   iconProxy: boolean
   /** 上次成功同步的时间 */

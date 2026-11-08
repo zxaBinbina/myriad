@@ -113,6 +113,7 @@ export function defaultSyncConfig(): SyncConfig {
     clientId: '',
     clientSecret: '',
     scopes: defaultSyncScopes(),
+    localOnly: [],
     iconProxy: true,
     lastSync: 0,
   }

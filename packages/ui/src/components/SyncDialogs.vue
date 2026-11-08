@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { type Json, type ResolvedConflict, SETTINGS_SCOPES, type SettingsScope } from '@myriad/core'
+import type { Json, ResolvedConflict } from '@myriad/core'
 import { Cloud, Laptop } from '@lucide/vue'
 import { ref, watch } from 'vue'
 import { useI18n } from '../i18n'
 import { useStore } from '../state/store'
-import { conflictTarget, useSync } from '../state/sync'
+import { type ConflictChoice, conflictTarget, useSync } from '../state/sync'
+import { plainValue, settingLabel, settingScopeName, settingValue } from '../state/syncLabels'
 import MDialog from './base/MDialog.vue'
 
 const store = useStore()
@@ -12,7 +13,7 @@ const sync = useSync()
 const { m, t } = useI18n()
 
 /* ---------------- 冲突 ---------------- */
-const picks = ref<Record<number, 'local' | 'remote'>>({})
+const picks = ref<Record<number, ConflictChoice>>({})
 watch(
   () => sync.conflicts.value.length,
   () => {
@@ -27,34 +28,37 @@ watch(
   { immediate: true },
 )
 
-function scopeOfSetting(key: string): SettingsScope | null {
-  for (const [scope, keys] of Object.entries(SETTINGS_SCOPES))
-    if ((keys as readonly string[]).includes(key)) return scope as SettingsScope
-  return null
+const isSetting = (c: ResolvedConflict) => c.path[0] === 'settings'
+
+/** 设置冲突多一个「仅本机」选项：保留本机值，以后不再同步这一项 */
+function sides(c: ResolvedConflict): ConflictChoice[] {
+  return isSetting(c) ? ['local', 'remote', 'pin'] : ['local', 'remote']
 }
 
 function title(c: ResolvedConflict) {
   const target = conflictTarget(store, c)
   if (target.kind === 'item') return t('sync.conflictItem', { name: target.name })
   if (target.kind === 'group') return t('sync.conflictGroup', { name: target.name })
-  const scope = scopeOfSetting(target.name)
-  return scope ? m.value.sync.scopeNames[scope] : target.name
+  return settingScopeName(m.value, c.path.slice(1))
 }
 
 function field(c: ResolvedConflict) {
-  const target = conflictTarget(store, c)
-  if (target.kind === 'setting') return [target.name, target.field].filter(Boolean).join(' › ')
-  const [head, ...rest] = target.field.split('.')
+  if (isSetting(c)) return settingLabel(m.value, c.path.slice(1))
+  const [head, ...rest] = conflictTarget(store, c).field.split('.')
   const fields = m.value.sync.fields as Record<string, string>
   return [fields[head ?? ''] ?? head, ...rest].filter(Boolean).join(' › ')
 }
 
-function show(v: Json | undefined): string {
-  if (v === undefined || v === null || v === '') return m.value.sync.emptyValue
-  if (typeof v === 'string') return v.startsWith('data:') ? `${v.slice(0, 32)}…` : v
-  const s = JSON.stringify(v)
-  return s.length > 80 ? `${s.slice(0, 80)}…` : s
+function show(c: ResolvedConflict, v: Json | undefined): string {
+  return isSetting(c) ? settingValue(m.value, c.path.slice(1), v) : plainValue(m.value, v)
 }
+
+const sideLabel = (side: ConflictChoice) =>
+  side === 'local'
+    ? m.value.sync.conflictLocal
+    : side === 'remote'
+      ? m.value.sync.conflictRemote
+      : m.value.sync.conflictPin
 
 function apply() {
   sync.resolveConflicts(picks.value)
@@ -97,7 +101,7 @@ function apply() {
     :open="!sync.state.choice && sync.conflicts.value.length > 0"
     :title="m.sync.conflictTitle"
     eyebrow="SYNC"
-    width="560px"
+    width="640px"
     @close="apply"
   >
     <p class="m-sync-dlg__desc">{{ m.sync.conflictDesc }}</p>
@@ -108,16 +112,15 @@ function apply() {
         </p>
         <div class="m-conflict__opts" role="radiogroup" :aria-label="title(c)">
           <label
-            v-for="side in ['local', 'remote'] as const"
+            v-for="side in sides(c)"
             :key="side"
             class="m-conflict__opt"
-            :class="{ 'is-picked': picks[i] === side }"
+            :class="{ 'is-picked': picks[i] === side, 'is-pin': side === 'pin' }"
           >
             <input v-model="picks[i]" type="radio" :name="`conflict-${i}`" :value="side" />
-            <span class="m-conflict__side">
-              {{ side === 'local' ? m.sync.conflictLocal : m.sync.conflictRemote }}
-            </span>
-            <span class="m-conflict__value">{{ show(side === 'local' ? c.local : c.remote) }}</span>
+            <span class="m-conflict__side">{{ sideLabel(side) }}</span>
+            <span class="m-conflict__value">{{ show(c, side === 'remote' ? c.remote : c.local) }}</span>
+            <span v-if="side === 'pin'" class="m-conflict__hint">{{ m.sync.conflictPinDesc }}</span>
           </label>
         </div>
       </li>
@@ -194,7 +197,7 @@ function apply() {
 }
 .m-conflict__opts {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
 }
 .m-conflict__opt {
@@ -222,6 +225,11 @@ function apply() {
 .m-conflict__side {
   color: var(--muted);
   font-size: 11.5px;
+}
+.m-conflict__hint {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
 }
 .m-conflict__value {
   overflow: hidden;

@@ -454,7 +454,13 @@ const en: Messages = {
       'These were changed to different values on two devices. Choose which version to keep.',
     conflictLocal: 'This device',
     conflictRemote: 'Other device',
+    conflictPin: 'This device only',
+    conflictPinDesc: 'Keep this device’s value and stop syncing this setting',
     conflictApply: 'Keep selected',
+    localOnly: 'Device-only settings',
+    localOnlyDesc:
+      'These settings apply to this device only: they are not uploaded and ignore changes from other devices. Resuming sync uploads this device’s value.',
+    resumeSync: 'Resume sync',
     conflictItem: 'Shortcut “{name}”',
     conflictGroup: 'Group “{name}”',
     fields: {

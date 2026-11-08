@@ -9,6 +9,8 @@ import {
   HOLIDAY_SOURCES,
   historyFromJson,
   historyToJson,
+  LOCAL_PATH_SEP,
+  pinPaths,
   loadData,
   mergeSyncedSettings,
   type MyriadApi,
@@ -33,6 +35,7 @@ import type { MyriadStore } from './store'
  * - 打开页面、切回标签页、恢复网络、每 5 分钟（页面可见时）拉取一次。
  */
 
+export type ConflictChoice = 'local' | 'remote' | 'pin'
 export type SyncStatus = 'off' | 'connecting' | 'idle' | 'syncing' | 'offline' | 'error'
 export type ConnectChoice = 'cloud' | 'local'
 
@@ -108,8 +111,10 @@ export function createSyncController(store: MyriadStore) {
       changed = engine.applyLocal('data', dataToJson(toRaw(store.data))) || changed
     if (!only || only === STORAGE_KEYS.settings) {
       const k = keys()
-      changed =
-        engine.applyLocal('settings', settingsToJson(toRaw(store.settings), k), k) || changed
+      const json = settingsToJson(toRaw(store.settings), k)
+      // 「仅本机」的项保持文档里原来的值，不上传
+      pinPaths(json, engine.read('settings') ?? {}, cfg().localOnly)
+      changed = engine.applyLocal('settings', json, k) || changed
     }
     if ((!only || only === STORAGE_KEYS.local) && cfg().scopes.history)
       changed =
@@ -137,6 +142,8 @@ export function createSyncController(store: MyriadStore) {
     }
     const s = engine.read('settings')
     if (s) {
+      // 「仅本机」的项保留本机的值
+      pinPaths(s, plainSettings(), cfg().localOnly)
       const next = mergeSyncedSettings(toRaw(store.settings), s, keys())
       if (!deepEqual({ ...next, updatedAt: 0 }, { ...toRaw(store.settings), updatedAt: 0 }))
         store.replaceSettings(next)
@@ -149,6 +156,8 @@ export function createSyncController(store: MyriadStore) {
       }
     }
   }
+
+  const plainSettings = () => JSON.parse(JSON.stringify(store.settings)) as unknown
 
   function createEngine() {
     return new SyncEngine({
@@ -344,11 +353,21 @@ export function createSyncController(store: MyriadStore) {
 
   /* ---------------- 冲突 ---------------- */
 
-  /** 按用户选择处理冲突：选择本机值时写回（成为一次新的修改，同步给其他设备） */
-  function resolveConflicts(choices: Record<number, 'local' | 'remote'>) {
+  /**
+   * 按用户选择处理冲突：
+   * - local：写回本机值（成为一次新的修改，同步给其他设备）
+   * - remote：保留其他设备的值
+   * - pin：保留本机值，并把这一项设为「仅本机」，以后不再同步（只用于设置）
+   */
+  function resolveConflicts(choices: Record<number, ConflictChoice>) {
+    const pinned: string[] = []
     conflicts.value.forEach((c, i) => {
       const pick = choices[i] ?? 'remote'
-      const value = pick === 'local' ? c.local : c.remote
+      if (pick === 'pin' && c.path[0] === 'settings')
+        pinned.push(c.path.slice(1).join(LOCAL_PATH_SEP))
+      // 先登记「仅本机」，写回的本机值稍后写入文档时就不会被上传
+      for (const p of pinned) if (!cfg().localOnly.includes(p)) cfg().localOnly.push(p)
+      const value = pick === 'remote' ? c.remote : c.local
       if (deepEqual(value, c.current)) return
       const [root, ...path] = c.path
       const target = root === 'data' ? store.data : root === 'settings' ? store.settings : null
@@ -376,8 +395,10 @@ export function createSyncController(store: MyriadStore) {
     const snap = decodeSnapshot(await api.downloadBackup(id), SYNC_ROOTS)
     const d = snap.data ? loadData({ ...snap.data, updatedAt: Date.now() }) : null
     if (d) store.replaceData(d)
-    if (snap.settings)
+    if (snap.settings) {
+      pinPaths(snap.settings, plainSettings(), cfg().localOnly)
       store.replaceSettings(mergeSyncedSettings(toRaw(store.settings), snap.settings, keys()))
+    }
     if (snap.history && cfg().scopes.history)
       store.local.searchHistory = historyFromJson(snap.history)
   }
@@ -459,6 +480,11 @@ export function createSyncController(store: MyriadStore) {
     requestPermission,
     syncNow,
     resolveConflicts,
+    /** 让「仅本机」的设置项恢复同步（以本机的值为准上传） */
+    unpin(path: string) {
+      cfg().localOnly = cfg().localOnly.filter((p) => p !== path)
+      flushLocal(STORAGE_KEYS.settings)
+    },
     backupBefore,
     rollback,
     uploadBlob,

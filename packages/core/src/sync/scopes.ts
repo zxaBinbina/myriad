@@ -1,6 +1,6 @@
 import { loadSettings } from '../io'
 import type { LocalState, MyriadData, MyriadSettings } from '../types'
-import { isObject, type JsonObject } from './yjson'
+import { getAtPath, isObject, type JsonObject, setAtPath } from './yjson'
 
 /** 同步文档的顶层分区 */
 export const SYNC_ROOTS = ['data', 'settings', 'history'] as const
@@ -64,6 +64,23 @@ export function mergeSyncedSettings(
   const next = plain(current) as unknown as Record<string, unknown>
   if (remote) for (const k of keys) if (k in remote) next[k] = remote[k]
   return loadSettings(next)
+}
+
+/** 「仅本机」路径的分隔符 */
+export const LOCAL_PATH_SEP = '/'
+
+/**
+ * 把 target 中的「仅本机」路径替换成 source 中对应的值（source 没有时删除）。
+ * - 写入同步文档前：source 是文档里现有的值，于是这些项不会被上传；
+ * - 读取远端设置时：source 是本机的值，于是远端的修改不会覆盖它们。
+ */
+export function pinPaths(target: JsonObject, source: unknown, paths: readonly string[]) {
+  for (const p of paths) {
+    const path = p.split(LOCAL_PATH_SEP).filter(Boolean)
+    if (!path.length || getAtPath(target, path.slice(0, -1)) === undefined) continue
+    setAtPath(target, path, structuredClone(getAtPath(source, path)))
+  }
+  return target
 }
 
 type History = LocalState['searchHistory']

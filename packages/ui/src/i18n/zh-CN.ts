@@ -438,7 +438,12 @@ const zhCN = {
     conflictDesc: '下面这些内容在两台设备上被改成了不同的值，请选择要保留的版本。',
     conflictLocal: '这台设备',
     conflictRemote: '其他设备',
+    conflictPin: '仅本机',
+    conflictPinDesc: '保留这台设备的值，以后这一项不再同步',
     conflictApply: '保留所选',
+    localOnly: '仅本机的设置',
+    localOnlyDesc: '这些设置项只在本设备生效，不上传也不接收其他设备的修改。恢复同步后以本设备的值为准。',
+    resumeSync: '恢复同步',
     conflictItem: '快捷方式「{name}」',
     conflictGroup: '分组「{name}」',
     fields: {
