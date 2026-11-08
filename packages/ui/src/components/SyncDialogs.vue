@@ -119,7 +119,9 @@ function apply() {
           >
             <input v-model="picks[i]" type="radio" :name="`conflict-${i}`" :value="side" />
             <span class="m-conflict__side">{{ sideLabel(side) }}</span>
-            <span class="m-conflict__value">{{ show(c, side === 'remote' ? c.remote : c.local) }}</span>
+            <span class="m-conflict__value">{{
+              show(c, side === 'remote' ? c.remote : c.local)
+            }}</span>
             <span v-if="side === 'pin'" class="m-conflict__hint">{{ m.sync.conflictPinDesc }}</span>
           </label>
         </div>
@@ -202,6 +204,7 @@ function apply() {
 }
 .m-conflict__opt {
   display: grid;
+  align-content: start;
   gap: 4px;
   min-width: 0;
   padding: 10px 12px;

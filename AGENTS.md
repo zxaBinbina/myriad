@@ -4,12 +4,12 @@
 
 ## 结构
 
-| 工作区            | 包名                 | 说明                                                                                                                                                                                                                                                                                                              |
-| ----------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/core`   | `@myriad/core`       | 纯 TypeScript，无 Vue / 浏览器扩展依赖：类型（`types.ts`）、默认值与预设（`defaults.ts`）、数据操作（`model.ts`）、存储接口（`storage.ts`）、JSON 导入导出（`io.ts`）、书签转换（`bookmarks.ts`）、搜索引擎（`engines.ts`）、图标回退（`icons.ts`）、快捷键解析（`keys.ts`）、农历 / 节气 / 节假日（`calendar/`） |
-| `packages/ui`     | `@myriad/ui`         | Vue 3 界面，入口组件 `MyriadApp`；状态在 `state/`（`store.ts` 响应式单例 + 持久化，`actions.ts` 增删改，`drag.ts` 拖拽），样式在 `styles/`，文案在 `i18n/`                                                                                                                                                        |
-| `apps/extension`  | `@myriad/extension`  | WXT 扩展，只负责实现 `MyriadPlatform`（chrome.storage、书签权限、焦点抢夺）并挂载 `MyriadApp`                                                                                                                                                                                                                     |
-| `apps/playground` | `@myriad/playground` | 网页版宿主（localStorage），用于开发预览和 `scripts/check-ui.py`                                                                                                                                                                                                                                                  |
+| 工作区            | 包名                 | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core`   | `@myriad/core`       | 纯 TypeScript，无 Vue / 浏览器扩展依赖：类型（`types.ts`）、默认值与预设（`defaults.ts`）、数据操作（`model.ts`）、存储接口（`storage.ts`）、JSON 导入导出（`io.ts`）、书签转换（`bookmarks.ts`）、搜索引擎（`engines.ts`）、图标回退（`icons.ts`）、快捷键解析（`keys.ts`）、农历 / 节气 / 节假日（`calendar/`）、同步（`sync/`：JSON↔Yjs 映射与三方冲突比较 `yjson.ts`、引擎 `engine.ts`、myriad_api 客户端 `api.ts`、同步范围 `scopes.ts`） |
+| `packages/ui`     | `@myriad/ui`         | Vue 3 界面，入口组件 `MyriadApp`；状态在 `state/`（`store.ts` 响应式单例 + 持久化，`actions.ts` 增删改，`drag.ts` 拖拽，`sync.ts` 同步控制器，`syncLabels.ts` 设置项文案），样式在 `styles/`，文案在 `i18n/`                                                                                                                                                                                                                                   |
+| `apps/extension`  | `@myriad/extension`  | WXT 扩展，只负责实现 `MyriadPlatform`（chrome.storage、书签权限、焦点抢夺）并挂载 `MyriadApp`                                                                                                                                                                                                                                                                                                                                                  |
+| `apps/playground` | `@myriad/playground` | 网页版宿主（localStorage），用于开发预览和 `scripts/check-ui.py`                                                                                                                                                                                                                                                                                                                                                                               |
 
 npm 正式包名计划为 `@zxabinbina/myriad-core` / `@zxabinbina/myriad-ui`，在 M5 发布时再改名；现在工作区内部统一用 `@myriad/*`，包直接导出 `src/*.ts` 源码，不单独构建。
 
@@ -23,6 +23,9 @@ npm 正式包名计划为 `@zxabinbina/myriad-core` / `@zxabinbina/myriad-ui`，
 - **小组件**：在 `components/widgets/registry.ts` 注册（图标、可选尺寸、异步组件），`WidgetKind` 在 core 的 `types.ts` 里扩充。组件只在可见时拉数据。
 - **权限**：`storage` 之外的权限一律做成可选，用到时通过 `browser.permissions.request` 申请。
 - **格式**：Prettier（无分号、单引号、行宽 100）。
+- **同步**：分组 / 条目 / Dock（`data`）、参与同步的设置键（`settings`）、搜索历史（`history`）三个分区写入同一个 Yjs 文档。store 每次写存储前通过 `onPersist` 钩子把修改写进文档（`reconcile*` 只写变化部分）并广播给其他标签页，然后才写存储，这样其他标签页先收到 Yjs 更新、不会产生重复操作；远端修改由 `applyRemote` 写回 store。新增设置项不用改同步代码，但新增顶层设置键要放进 `SETTINGS_SCOPES` 的某个范围，否则不会同步。时间戳（`updatedAt`）不进文档。
+- **同步配置**（`LocalState.sync`，含 Service Token）只存本机，不导出、不同步。store 加载时会整体替换 `local.sync` 等嵌套对象，组件里不要缓存这些对象的引用，用 `computed(() => store.local.sync)`。
+- **Logo**：源文件在 `docs/logo.svg`（只有图形，不含文字），扩展图标 `apps/extension/public/icon/*.png` 由它导出（`magick -background none -density 600 docs/logo.svg -resize 128x128 …`），改 Logo 时一起重新生成。
 - **scoped 样式里的 `:global()`**：必须把整个选择器包进去，写成 `:global(.myriad.has-wallpaper .m-foo)`。写成 `:global(.myriad.has-wallpaper) .m-foo` 时 Vue 会丢掉后半段，规则会作用到整个页面（曾导致关闭图标名称后整页 `display: none`）。
 
 ## 验证
@@ -40,3 +43,6 @@ npm run typecheck && npm test && npm run build
 - 搜索联想与 Bing 壁纸所需的主机权限目前写在 `host_permissions`（安装时授予），与需求中「可选权限」的约定不一致，后续可改为 `optional_host_permissions` 并在首次使用时申请。
 - 新标签页焦点：采用「重新加载自身」方案，默认关闭（设置 → 打开新标签页时聚焦搜索框）。
 - `simple-icons` 整包约 5MB，打进扩展后体积较大；可考虑按需加载或只保留常用图标。
+- 同步端到端测试目前靠 Chrome DevTools MCP 手动跑（playground 两个隔离上下文 + 本地 `wrangler dev`），尚未写进 `scripts/`。
+- M2 联调时出现过一次 `myriad.local` 写入落后于内存（`lastSync` 旧了几分钟），没能重现；已给持久化钩子加 try/catch，后续留意。
+- 网站版（M5）通过 Cookie 访问私有接口时，需要在 Access 应用里开启「绕过 OPTIONS 预检」，并在 Worker 的 `ALLOWED_ORIGINS` 里列出主页来源。

@@ -207,7 +207,14 @@ export function createStore(platform: MyriadPlatform) {
       lastBody[key] = body
       // 直接改原始对象，不触发响应式更新
       if ('updatedAt' in raw) raw.updatedAt = Date.now()
-      for (const fn of persistHooks) fn(key)
+      for (const fn of persistHooks) {
+        try {
+          fn(key)
+        } catch (e) {
+          // 同步出错不能影响本机保存
+          console.error(e)
+        }
+      }
       void storage.set(key, JSON.parse(JSON.stringify(raw)))
     }, 250)
   }

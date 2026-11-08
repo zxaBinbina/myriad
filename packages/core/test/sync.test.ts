@@ -12,7 +12,7 @@ import {
   SyncEngine,
   type SyncTransport,
 } from '../src/sync/engine'
-import { dataToJson, historyFromJson, historyToJson } from '../src/sync/scopes'
+import { dataToJson, historyFromJson, historyToJson, pinPaths } from '../src/sync/scopes'
 import { diff3, type JsonObject, reconcileMap } from '../src/sync/yjson'
 import type { MyriadData } from '../src/types'
 
@@ -132,6 +132,19 @@ describe('JSON ↔ Yjs 映射', () => {
     reconcileMap(map, { palette: 'fufu-blue', theme: 'dark' })
     reconcileMap(map, { palette: 'hutao-red' }, ['palette'])
     expect(map.toJSON()).toEqual({ palette: 'hutao-red', theme: 'dark' })
+  })
+
+  it('「仅本机」路径在两个方向上都保持另一边的值', () => {
+    const local = { theme: 'dark', clock: { hour12: true, showSeconds: true } } as JsonObject
+    const doc = { theme: 'light', clock: { hour12: false, showSeconds: false } } as JsonObject
+    // 写入文档前：仅本机的项换成文档里的值，所以不会上传
+    const upload = pinPaths(structuredClone(local), doc, ['theme', 'clock/hour12'])
+    expect(upload).toEqual({ theme: 'light', clock: { hour12: false, showSeconds: true } })
+    // 读取远端时：仅本机的项换成本机的值
+    const incoming = pinPaths(structuredClone(doc), local, ['theme', 'clock/hour12'])
+    expect(incoming).toEqual({ theme: 'dark', clock: { hour12: true, showSeconds: false } })
+    // 文档里没有该项时不写入
+    expect(pinPaths({ theme: 'dark' }, {}, ['theme'])).toEqual({})
   })
 
   it('三方比较只报告两边都改且不同的字段', () => {

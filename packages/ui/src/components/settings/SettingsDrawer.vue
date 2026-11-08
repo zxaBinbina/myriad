@@ -26,6 +26,7 @@ import { useI18n } from '../../i18n'
 import { blobStore } from '../../state/blobs'
 import { useStore } from '../../state/store'
 import { useSync } from '../../state/sync'
+import { settingLabel, settingScopeName } from '../../state/syncLabels'
 import MSeg from '../base/MSeg.vue'
 import MSwitch from '../base/MSwitch.vue'
 import MRange from './MRange.vue'
@@ -1182,6 +1183,20 @@ function close() {
               <SettingRow :label="m.sync.iconProxy" :desc="m.sync.iconProxyDesc">
                 <MSwitch v-model="sc.iconProxy" :label="m.sync.iconProxy" />
               </SettingRow>
+              <template v-if="sc.localOnly.length">
+                <h3 class="m-drawer__sub">{{ m.sync.localOnly }}</h3>
+                <p class="m-drawer__note">{{ m.sync.localOnlyDesc }}</p>
+                <SettingRow
+                  v-for="p in sc.localOnly"
+                  :key="p"
+                  :label="settingLabel(m, p.split('/'))"
+                  :desc="settingScopeName(m, p.split('/'))"
+                >
+                  <button type="button" class="m-btn m-btn--small" @click="sync.unpin(p)">
+                    {{ m.sync.resumeSync }}
+                  </button>
+                </SettingRow>
+              </template>
 
               <template v-if="sync.canBackups.value">
                 <h3 class="m-drawer__sub">{{ m.sync.backups }}</h3>

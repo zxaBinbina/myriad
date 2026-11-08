@@ -442,7 +442,8 @@ const zhCN = {
     conflictPinDesc: '保留这台设备的值，以后这一项不再同步',
     conflictApply: '保留所选',
     localOnly: '仅本机的设置',
-    localOnlyDesc: '这些设置项只在本设备生效，不上传也不接收其他设备的修改。恢复同步后以本设备的值为准。',
+    localOnlyDesc:
+      '这些设置项只在本设备生效，不上传也不接收其他设备的修改。恢复同步后以本设备的值为准。',
     resumeSync: '恢复同步',
     conflictItem: '快捷方式「{name}」',
     conflictGroup: '分组「{name}」',
