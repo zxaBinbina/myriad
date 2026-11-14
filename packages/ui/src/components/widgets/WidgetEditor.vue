@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import {
   countdownConfig,
+  fromLunar,
   parsePlainDate,
   quoteConfig,
   QUOTE_CATEGORIES,
@@ -22,6 +23,8 @@ import MSwitch from '../base/MSwitch.vue'
 import AdvancedWidgetSettings from './AdvancedWidgetSettings.vue'
 import MemoSettings from './MemoSettings.vue'
 import TranslationSettings from './TranslationSettings.vue'
+import GithubSettings from './GithubSettings.vue'
+import { useMemo } from '../../state/memo'
 
 const store = useStore()
 const { m, t } = useI18n()
@@ -37,6 +40,17 @@ const advanced = ref<InstanceType<typeof AdvancedWidgetSettings> | null>(null)
 const memoSettings = ref<InstanceType<typeof MemoSettings> | null>(null)
 const translationSettings = ref<InstanceType<typeof TranslationSettings> | null>(null)
 const translationFormId = useId()
+const githubSettings = ref<InstanceType<typeof GithubSettings> | null>(null)
+const githubFormId = useId(),
+  countdownFormId = useId(),
+  fieldId = useId()
+const memo = useMemo()
+const reminderAllowed = ref(false)
+async function enableReminders() {
+  const granted = store.platform.reminders?.request()
+  reminderAllowed.value = !!(await granted)
+  if (reminderAllowed.value) void memo.refreshReminders()
+}
 const query = ref('')
 const results = ref<WeatherCity[]>([])
 const searched = ref(false)
@@ -71,6 +85,13 @@ function close() {
 }
 async function save() {
   if (!item.value) return
+  if (item.value.kind === 'github' && githubSettings.value) {
+    error.value = githubSettings.value.validate()
+    if (error.value) return
+    item.value.config = githubSettings.value.value()
+    close()
+    return
+  }
   if (item.value.kind === 'translation' && translationSettings.value) {
     if (busy.value) return
     busy.value = true
@@ -112,7 +133,33 @@ async function save() {
     close()
     return
   }
-  if (item.value.kind === 'countdown' && !parsePlainDate(countdown.value.date)) {
+  if (
+    item.value.kind === 'countdown' &&
+    countdown.value.calendar === 'lunar' &&
+    !(
+      fromLunar(
+        countdown.value.lunarYear,
+        countdown.value.lunarMonth,
+        countdown.value.lunarDay,
+        countdown.value.lunarLeap,
+      ) ||
+      (countdown.value.lunarDay === 30 &&
+        fromLunar(
+          countdown.value.lunarYear,
+          countdown.value.lunarMonth,
+          29,
+          countdown.value.lunarLeap,
+        ))
+    )
+  ) {
+    error.value = m.value.widget.invalidLunar
+    return
+  }
+  if (
+    item.value.kind === 'countdown' &&
+    countdown.value.calendar === 'solar' &&
+    !parsePlainDate(countdown.value.date)
+  ) {
     error.value = m.value.widget.invalidDate
     return
   }
@@ -224,6 +271,14 @@ onBeforeUnmount(() => {
     @close="close"
   >
     <div v-if="item" class="m-widget-editor">
+      <GithubSettings
+        v-if="item.kind === 'github'"
+        :key="item.id"
+        ref="githubSettings"
+        :initial="item.config"
+        :form-id="githubFormId"
+        @save="save"
+      />
       <TranslationSettings
         v-if="item.kind === 'translation'"
         :key="item.id"
@@ -262,6 +317,15 @@ onBeforeUnmount(() => {
         </select>
       </label>
       <template v-if="item.kind === 'weather'">
+        <div class="m-field">
+          <label :for="`${fieldId}-provider`">{{ m.widget.weatherProviderLabel }}</label>
+          <select :id="`${fieldId}-provider`" v-model="weather.provider" class="m-select">
+            <option value="auto">{{ m.widget.qweatherAuto }}</option>
+            <option value="open-meteo">Open-Meteo</option>
+            <option value="qweather">QWeather</option>
+          </select>
+        </div>
+        <p class="m-widget-editor__hint">{{ m.widget.weatherProvider }}</p>
         <form class="m-widget-editor__search" @submit.prevent="search">
           <label class="m-field"
             ><span>{{ m.widget.searchCity }}</span
@@ -376,6 +440,10 @@ onBeforeUnmount(() => {
           <span>{{ m.widget.sun }}</span
           ><MSwitch v-model="weather.sun" :label="m.widget.sun" />
         </div>
+        <div class="m-widget-editor__toggle">
+          <span>{{ m.widget.warnings }}</span
+          ><MSwitch v-model="weather.warnings" :label="m.widget.warnings" />
+        </div>
       </template>
       <template v-else-if="item.kind === 'quote'">
         <p class="m-widget-editor__hint">{{ m.widget.quoteCache }}</p>
@@ -402,7 +470,25 @@ onBeforeUnmount(() => {
           </button>
         </div>
       </template>
-      <template v-else-if="item.kind === 'countdown'">
+      <form
+        v-else-if="item.kind === 'countdown'"
+        :id="countdownFormId"
+        class="m-widget-editor"
+        @submit.prevent="save"
+      >
+        <div class="m-field">
+          <label :for="`${fieldId}-calendar`">{{ m.widget.eventCalendar }}</label>
+          <select
+            :id="`${fieldId}-calendar`"
+            v-model="countdown.calendar"
+            class="m-select"
+            name="calendar"
+          >
+            <option value="solar">{{ m.widget.solarDate }}</option>
+            <option value="lunar">{{ m.widget.lunarDate }}</option>
+            <option value="holiday">{{ m.widget.nextHoliday }}</option>
+          </select>
+        </div>
         <label class="m-field"
           ><span>{{ m.widget.eventTitle }}</span
           ><input
@@ -411,7 +497,7 @@ onBeforeUnmount(() => {
             :placeholder="m.widget.defaultEvent"
             autofocus
         /></label>
-        <label class="m-field"
+        <label v-if="countdown.calendar === 'solar'" class="m-field"
           ><span>{{ m.widget.eventDate }}</span
           ><input
             v-model="countdown.date"
@@ -420,20 +506,86 @@ onBeforeUnmount(() => {
             min="1000-01-01"
             max="9999-12-31"
         /></label>
-        <label class="m-field"
-          ><span>{{ m.widget.repeat }}</span
-          ><select v-model="countdown.repeat" class="m-select">
+        <template v-if="countdown.calendar === 'lunar'">
+          <label class="m-field" :for="`${fieldId}-lunar-year`"
+            ><span>{{ m.widget.lunarYear }}</span
+            ><input
+              :id="`${fieldId}-lunar-year`"
+              v-model.number="countdown.lunarYear"
+              type="number"
+              min="1900"
+              max="2100"
+              required
+              class="m-input"
+              name="lunarYear"
+          /></label>
+          <label class="m-field" :for="`${fieldId}-lunar-month`"
+            ><span>{{ m.widget.lunarMonth }}</span
+            ><input
+              :id="`${fieldId}-lunar-month`"
+              v-model.number="countdown.lunarMonth"
+              type="number"
+              min="1"
+              max="12"
+              required
+              class="m-input"
+              name="lunarMonth"
+          /></label>
+          <label class="m-field" :for="`${fieldId}-lunar-day`"
+            ><span>{{ m.widget.lunarDay }}</span
+            ><input
+              :id="`${fieldId}-lunar-day`"
+              v-model.number="countdown.lunarDay"
+              type="number"
+              min="1"
+              max="30"
+              required
+              class="m-input"
+              name="lunarDay"
+          /></label>
+          <div class="m-widget-editor__toggle">
+            <span>{{ m.widget.lunarLeap }}</span
+            ><MSwitch v-model="countdown.lunarLeap" :label="m.widget.lunarLeap" />
+          </div>
+        </template>
+        <div v-if="countdown.calendar !== 'holiday'" class="m-field">
+          <label :for="`${fieldId}-repeat`">{{ m.widget.repeat }}</label>
+          <select :id="`${fieldId}-repeat`" v-model="countdown.repeat" class="m-select">
             <option value="none">{{ m.widget.repeatNone }}</option>
             <option value="year">{{ m.widget.repeatYear }}</option>
             <option value="month">{{ m.widget.repeatMonth }}</option>
             <option value="week">{{ m.widget.repeatWeek }}</option>
-          </select></label
-        >
+          </select>
+        </div>
         <div class="m-widget-editor__toggle">
           <span>{{ m.widget.showElapsed }}</span
           ><MSwitch v-model="countdown.showElapsed" :label="m.widget.showElapsed" />
         </div>
         <p class="m-widget-editor__hint">{{ m.widget.countdownHint }}</p>
+        <div class="m-widget-editor__toggle">
+          <span>{{ m.widget.eventReminder }}</span
+          ><MSwitch v-model="countdown.remind" :label="m.widget.eventReminder" />
+        </div>
+        <template v-if="countdown.remind"
+          ><label class="m-field" :for="`${fieldId}-reminder`"
+            ><span>{{ m.widget.eventReminderTime }}</span
+            ><input
+              :id="`${fieldId}-reminder`"
+              v-model="countdown.reminderTime"
+              type="time"
+              class="m-input"
+              required
+              name="reminderTime" /></label
+          ><button
+            v-if="store.platform.reminders"
+            type="button"
+            class="m-btn m-btn--small"
+            @click="enableReminders"
+          >
+            {{ reminderAllowed ? m.widget.reminderEnabled : m.widget.enableReminders }}
+          </button>
+          <p class="m-widget-editor__hint">{{ m.widget.eventReminderHint }}</p></template
+        >
         <label class="m-widget-editor__toggle"
           ><span>{{ m.memo.calendar }}</span
           ><MSwitch
@@ -441,18 +593,35 @@ onBeforeUnmount(() => {
             :label="m.memo.calendar"
             @update:model-value="countdown.includeTodos = $event"
         /></label>
-      </template>
+      </form>
       <p v-if="busy" class="m-widget-editor__hint" role="status">{{ m.widget.loading }}</p>
       <p v-if="error" class="m-error" role="alert">{{ error }}</p>
     </div>
     <template #footer
       ><button type="button" class="m-btn" @click="close">{{ m.common.cancel }}</button
       ><button
-        :type="item?.kind === 'translation' ? 'submit' : 'button'"
-        :form="item?.kind === 'translation' ? translationFormId : undefined"
+        :type="
+          item?.kind === 'translation' || item?.kind === 'github' || item?.kind === 'countdown'
+            ? 'submit'
+            : 'button'
+        "
+        :form="
+          item?.kind === 'translation'
+            ? translationFormId
+            : item?.kind === 'github'
+              ? githubFormId
+              : item?.kind === 'countdown'
+                ? countdownFormId
+                : undefined
+        "
         class="m-btn m-btn--primary"
         :disabled="busy"
-        @click="item?.kind !== 'translation' && save()"
+        @click="
+          item?.kind !== 'translation' &&
+          item?.kind !== 'github' &&
+          item?.kind !== 'countdown' &&
+          save()
+        "
       >
         {{ m.common.save }}
       </button></template

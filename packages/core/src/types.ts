@@ -78,6 +78,7 @@ export type WidgetKind =
   | 'calendar'
   | 'analogClock'
   | 'weather'
+  | 'github'
   | 'quote'
   | 'countdown'
   | 'status'

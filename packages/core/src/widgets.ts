@@ -1,4 +1,7 @@
 import { addDays, daysInMonth, plainToUtc, type PlainDate, ymd } from './calendar/dates'
+import { toLunar } from './calendar/lunar'
+import type { HolidayMap } from './calendar/holidays'
+import { Lunar } from 'lunar-typescript'
 
 export interface WeatherCity {
   name: string
@@ -16,6 +19,8 @@ export interface WeatherConfig {
   forecast: boolean
   airQuality: boolean
   sun: boolean
+  provider: 'auto' | 'open-meteo' | 'qweather'
+  warnings: boolean
 }
 
 export interface Quote {
@@ -32,6 +37,13 @@ export interface QuoteConfig {
   fromFavorites: boolean
 }
 export interface CountdownConfig {
+  calendar: 'solar' | 'lunar' | 'holiday'
+  lunarYear: number
+  lunarMonth: number
+  lunarDay: number
+  lunarLeap: boolean
+  remind: boolean
+  reminderTime: string
   includeTodos?: boolean
   title: string
   date: string
@@ -71,6 +83,8 @@ export function weatherConfig(value: unknown): WeatherConfig {
     forecast: v.forecast !== false,
     airQuality: v.airQuality !== false,
     sun: v.sun !== false,
+    provider: v.provider === 'qweather' || v.provider === 'open-meteo' ? v.provider : 'auto',
+    warnings: v.warnings !== false,
   }
 }
 
@@ -124,6 +138,16 @@ export function parsePlainDate(value: string): PlainDate | null {
 export function countdownConfig(value: unknown): CountdownConfig {
   const v = record(value)
   return {
+    calendar: v.calendar === 'lunar' || v.calendar === 'holiday' ? v.calendar : 'solar',
+    lunarYear: finite(v.lunarYear) ? Math.min(2100, Math.max(1900, Math.floor(v.lunarYear))) : 2025,
+    lunarMonth: finite(v.lunarMonth) ? Math.min(12, Math.max(1, Math.floor(v.lunarMonth))) : 1,
+    lunarDay: finite(v.lunarDay) ? Math.min(30, Math.max(1, Math.floor(v.lunarDay))) : 1,
+    lunarLeap: v.lunarLeap === true,
+    remind: v.remind === true,
+    reminderTime:
+      typeof v.reminderTime === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.reminderTime)
+        ? v.reminderTime
+        : '09:00',
     includeTodos: v.includeTodos !== false,
     title: text(v.title),
     date: typeof v.date === 'string' && parsePlainDate(v.date) ? v.date : '2025-06-20',
@@ -132,12 +156,97 @@ export function countdownConfig(value: unknown): CountdownConfig {
   }
 }
 
+/** Deterministic inverse calendar lookup, including leap months. */
+export function fromLunar(
+  year: number,
+  month: number,
+  day: number,
+  leap = false,
+): PlainDate | null {
+  try {
+    const solar = Lunar.fromYmd(year, leap ? -month : month, day).getSolar()
+    return { year: solar.getYear(), month: solar.getMonth(), day: solar.getDay() }
+  } catch {
+    return null
+  }
+}
+
+export function resolveCountdown(
+  config: CountdownConfig,
+  today: PlainDate,
+  holidays: HolidayMap = {},
+) {
+  if (config.calendar === 'solar')
+    return { ...countdownOccurrence(config, today), title: config.title }
+  if (config.calendar === 'holiday') {
+    const dates = Object.keys(holidays).sort()
+    const date = dates.find((date) => {
+      const previous = ymd(addDays(parsePlainDate(date)!, -1))
+      return (
+        date >= ymd(today) &&
+        holidays[date]?.off &&
+        (!holidays[previous]?.off || holidays[previous]?.name !== holidays[date]?.name)
+      )
+    })
+    return date
+      ? {
+          date,
+          remaining: dateDistance(today, parsePlainDate(date)!),
+          elapsed: -1,
+          title: holidays[date]!.name,
+        }
+      : null
+  }
+  const lunarDate = (year: number) =>
+    fromLunar(year, config.lunarMonth, config.lunarDay, config.lunarLeap) ??
+    (config.lunarDay === 30 ? fromLunar(year, config.lunarMonth, 29, config.lunarLeap) : null)
+  const start = lunarDate(config.lunarYear)
+  if (!start) return null
+  if (config.repeat === 'week')
+    return { ...countdownOccurrence({ ...config, date: ymd(start) }, today), title: config.title }
+  let target: PlainDate | null = start
+  if (dateDistance(today, start) < 0 && config.repeat === 'year') {
+    target = null
+    const year = toLunar(today)?.year ?? today.year
+    for (let y = year; y <= year + 20; y++) {
+      const candidate = lunarDate(y)
+      if (candidate && dateDistance(today, candidate) >= 0) {
+        target = candidate
+        break
+      }
+    }
+    if (!target) return null
+  } else if (dateDistance(today, start) < 0 && config.repeat === 'month') {
+    for (let i = 0; i < 62; i++) {
+      const date = addDays(today, i),
+        l = toLunar(date),
+        next = toLunar(addDays(date, 1))
+      if (
+        l &&
+        (l.day === config.lunarDay || (config.lunarDay === 30 && l.day === 29 && next?.day === 1))
+      ) {
+        target = date
+        break
+      }
+    }
+  }
+  return {
+    date: ymd(target),
+    remaining: dateDistance(today, target),
+    elapsed: dateDistance(start, today),
+    title: config.title,
+  }
+}
+
 export function dateDistance(from: PlainDate, to: PlainDate): number {
   return Math.round((plainToUtc(to).getTime() - plainToUtc(from).getTime()) / 86400000)
 }
 
 /** 循环日期保留原始日号：2 月短月夹到月末，后续月份恢复原日号。 */
-export function countdownOccurrence(config: CountdownConfig, today: PlainDate) {
+export function countdownOccurrence(
+  config: Pick<CountdownConfig, 'date' | 'repeat'> & Partial<CountdownConfig>,
+  today: PlainDate,
+) {
   const start = parsePlainDate(config.date) ?? { year: 2025, month: 6, day: 20 }
   let target = start
   if (dateDistance(today, start) < 0) {
@@ -166,6 +275,11 @@ export function countdownOccurrence(config: CountdownConfig, today: PlainDate) {
 }
 
 export interface WeatherReading {
+  provider?: 'qweather' | 'open-meteo'
+  warnings?: { id: string; title: string; text: string; severity: string }[]
+  warningsUnavailable?: boolean
+  condition?: string
+  aqiStandard?: string
   temperature: number | null
   apparent: number | null
   code: number | null
@@ -197,6 +311,20 @@ export function parseWeather(value: unknown): WeatherReading {
   const stringAt = (obj: Record<string, unknown>, key: string, i: number) =>
     text(Array.isArray(obj[key]) ? obj[key][i] : '')
   return {
+    provider: v.provider === 'qweather' ? 'qweather' : 'open-meteo',
+    condition: typeof v.condition === 'string' ? v.condition : undefined,
+    warnings: (Array.isArray(v.warnings) ? v.warnings : [])
+      .map(record)
+      .filter((w) => typeof w.title === 'string')
+      .slice(0, 20)
+      .map((w) => ({
+        id: text(w.id),
+        title: text(w.title),
+        text: text(w.text),
+        severity: text(w.severity),
+      })),
+    warningsUnavailable: v.warningsUnavailable === true,
+    aqiStandard: text(v.aqiStandard, 'US AQI'),
     temperature: current.temperature_2m,
     apparent: finite(current.apparent_temperature) ? current.apparent_temperature : null,
     code: finite(current.weather_code) ? current.weather_code : null,

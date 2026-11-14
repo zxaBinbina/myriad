@@ -25,12 +25,21 @@ const cityIndex = computed(() =>
 const city = computed(() => config.value.cities[cityIndex.value])
 const key = computed(() =>
   city.value
-    ? `weather:${widgetBase(store, config.value.route)}:${city.value.latitude}:${city.value.longitude}:${config.value.airQuality}`
+    ? `weather:v2:${widgetBase(store, config.value.route)}:${city.value.latitude}:${city.value.longitude}:${config.value.airQuality}:${config.value.provider}:${config.value.warnings}:${store.lang.value}`
     : null,
 )
 const { root, data, loading, error, stale, reload } = useVisibleResource(
   key,
-  (signal) => loadWeather(store, config.value.route, city.value!, config.value.airQuality, signal),
+  (signal) =>
+    loadWeather(
+      store,
+      config.value.route,
+      city.value!,
+      config.value.airQuality,
+      signal,
+      config.value.provider,
+      config.value.warnings,
+    ),
   1800000,
   computed(() => props.item.id),
 )
@@ -94,7 +103,7 @@ const dayLabel = (date: string, index: number) =>
           }}<small>°{{ config.unit === 'celsius' ? 'C' : 'F' }}</small></strong
         >
         <div class="m-weather__summary">
-          <span>{{ t(`widget.${weatherCondition(data.code)}`) }}</span>
+          <span>{{ data.condition || t(`widget.${weatherCondition(data.code)}`) }}</span>
           <small v-if="config.apparent && data.apparent !== null">{{
             t('widget.apparent', { n: temp(data.apparent) })
           }}</small>
@@ -109,6 +118,19 @@ const dayLabel = (date: string, index: number) =>
           {{ data.daily[0].sunset.slice(11, 16) }}</span
         >
       </div>
+      <section v-if="config.warnings && data.warnings?.length" class="m-weather__warnings">
+        <h4>{{ m.widget.warnings }}</h4>
+        <details v-for="warning in data.warnings" :key="warning.id">
+          <summary>{{ warning.title }}</summary>
+          <p>{{ warning.text }}</p>
+        </details>
+        <small>{{ m.widget.warningDisclaimer }}</small>
+      </section>
+      <small
+        v-else-if="config.warnings && data.warningsUnavailable"
+        class="m-weather__warning-hint"
+        >{{ m.widget.warningsUnavailable }}</small
+      >
       <div v-if="config.hourly && tall" class="m-weather__hourly" :aria-label="m.widget.hourly">
         <div v-for="h in data.hourly.slice(0, 8)" :key="h.time">
           <span>{{ h.time.slice(11, 16) }}</span
@@ -160,8 +182,13 @@ const dayLabel = (date: string, index: number) =>
     </div>
     <footer v-if="data" class="m-weather__credit">
       <span>{{ stale ? m.widget.cached : data.time.slice(11, 16) }}</span>
-      <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer"
-        >Open-Meteo · CAMS</a
+      <a
+        :href="
+          data.provider === 'qweather' ? 'https://www.qweather.com/' : 'https://open-meteo.com/'
+        "
+        target="_blank"
+        rel="noopener noreferrer"
+        >{{ data.provider === 'qweather' ? 'QWeather' : 'Open-Meteo · CAMS' }}</a
       >
     </footer>
   </div>
@@ -176,6 +203,27 @@ const dayLabel = (date: string, index: number) =>
   padding: 14px 16px 10px;
   container-type: inline-size;
   overflow: auto;
+}
+.m-weather__warnings {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  font-size: 11px;
+  background: color-mix(in srgb, var(--blue) 7%, transparent);
+}
+.m-weather__warnings h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+.m-weather__warnings p {
+  white-space: pre-wrap;
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+.m-weather__warnings small,
+.m-weather__warning-hint {
+  font-size: 10px;
+  color: var(--muted);
 }
 .m-weather__city {
   margin: 0;

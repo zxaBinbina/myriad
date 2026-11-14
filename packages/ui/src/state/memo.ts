@@ -14,6 +14,9 @@ import {
   reminderTime,
   todoTask,
   zonedParts,
+  countdownReminderJobs,
+  ymd,
+  type HolidayMap,
   type MemoContent,
   type MemoList,
   type TodoTask,
@@ -37,6 +40,26 @@ interface MemoView {
 }
 export function createMemoController(store: MyriadStore) {
   const views = reactive<Record<string, MemoView>>({})
+  const holidayDays = ref<HolidayMap>({})
+  const reminderDay = ref(ymd(zonedParts(new Date(), store.timeZone.value)))
+  const reminderTick = setInterval(() => {
+    reminderDay.value = ymd(zonedParts(new Date(), store.timeZone.value))
+  }, 60000)
+  async function restoreHolidays() {
+    try {
+      const days = await store.platform.storage.get<HolidayMap>('myriad.countdown.holidays')
+      if (days) holidayDays.value = { ...days, ...holidayDays.value }
+    } catch {
+      // A missing local cache must not stop task and event reminder setup.
+    }
+  }
+  void restoreHolidays()
+  function setHolidays(days: HolidayMap) {
+    holidayDays.value = { ...holidayDays.value, ...days }
+    void store.platform.storage
+      .set('myriad.countdown.holidays', JSON.parse(JSON.stringify(holidayDays.value)))
+      .catch(() => undefined)
+  }
   const editing = ref<{ listId: string; task: TodoTask; expected: string | undefined } | null>(null)
   const security = ref<string | null>(null)
   const replacements = reactive<Record<string, string>>({})
@@ -257,23 +280,36 @@ export function createMemoController(store: MyriadStore) {
         .map((t) => ({ listId: id, task: t })),
     )
   })
-  const jobs = computed<ReminderJob[]>(() =>
-    Object.entries(views).flatMap(([id, view]) =>
-      (view.content?.tasks ?? []).flatMap((t) => {
-        const at = reminderTime(t, store.timeZone.value)
-        return at === null || at < Date.now() - 86400000
-          ? []
-          : [
-              {
-                id: `memo:${id}:${t.id}:${at}`,
-                at,
-                title: t.title,
-                message: view.content?.title ?? '',
-              },
-            ]
-      }),
-    ),
-  )
+  const jobs = computed<ReminderJob[]>(() => {
+    void reminderDay.value
+    return [
+      ...Object.entries(views).flatMap(([id, view]) =>
+        (view.content?.tasks ?? []).flatMap((t) => {
+          const at = reminderTime(t, store.timeZone.value)
+          return at === null || at < Date.now() - 86400000
+            ? []
+            : [
+                {
+                  id: `memo:${id}:${t.id}:${at}`,
+                  at,
+                  title: t.title,
+                  message: view.content?.title ?? '',
+                },
+              ]
+        }),
+      ),
+      ...countdownReminderJobs(
+        Object.values(store.data.items).filter(
+          (i): i is WidgetItem => i.type === 'widget' && i.kind === 'countdown',
+        ),
+        holidayDays.value,
+        new Date(),
+        store.timeZone.value,
+        store.lang.value === 'zh-CN' ? '悠哉世界开服纪念日' : 'Youzai World Anniversary',
+        store.lang.value === 'zh-CN' ? '就在今天' : 'Today',
+      ),
+    ]
+  })
   async function refreshReminders() {
     if (
       !store.loaded.value ||
@@ -298,6 +334,7 @@ export function createMemoController(store: MyriadStore) {
     generation++
     stopWatch()
     stopJobs()
+    clearInterval(reminderTick)
     unsubscribe?.()
   }
   return {
@@ -319,6 +356,7 @@ export function createMemoController(store: MyriadStore) {
     calendarTasks,
     refresh,
     refreshReminders,
+    setHolidays,
     conflictValue,
     dispose,
   }

@@ -36,6 +36,9 @@ export interface ApiFeatures {
   blobMaxBytes?: number
   translation?: boolean
   translators?: WorkerTranslator[]
+  qweather?: boolean
+  github?: boolean
+  githubPrivate?: boolean
 }
 
 export interface BackupInfo {
@@ -158,6 +161,10 @@ export function createApi(config: ApiConfig, fetcher: typeof fetch = (...a) => f
       json<{ ok: boolean; version: string; features: ApiFeatures }>('/v1/health', {}, false),
     me: () => json<{ identity: string; version: string; features: ApiFeatures }>('/v1/me'),
     geo: () => json<GeoInfo>('/v1/geo', {}, false),
+    weather: (query: URLSearchParams, signal: AbortSignal) =>
+      json<unknown>(`/v1/me/weather?${query}`, { signal }),
+    github: (query: URLSearchParams, signal: AbortSignal) =>
+      json<unknown>(`/v1/me/github?${query}`, { signal }),
     translate: (input: TranslationInput, provider: WorkerTranslator, signal: AbortSignal) =>
       json<TranslationResult>('/v1/me/translate', {
         ...send('POST', { ...input, provider }),

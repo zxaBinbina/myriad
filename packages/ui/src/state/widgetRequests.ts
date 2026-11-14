@@ -1,4 +1,4 @@
-import { parseQuote, parseWeather, type WeatherCity } from '@myriad/core'
+import { createApi, parseQuote, parseWeather, type WeatherCity } from '@myriad/core'
 import { PermissionRequired } from '../composables/useVisibleResource'
 import type { MyriadStore } from './store'
 
@@ -39,6 +39,21 @@ export async function widgetJson(
   return res.json()
 }
 const get = widgetJson
+/** Private capabilities use only the configured Worker origin, with the user's auth. */
+export async function personalApi(store: MyriadStore, signal: AbortSignal) {
+  const base = widgetBase(store, 'auto')
+  if (!base) throw new Error('worker-required')
+  if (store.platform.origins && !(await store.platform.origins.has(new URL(base).origin)))
+    throw new PermissionRequired()
+  signal.throwIfAborted()
+  const cfg = store.local.sync
+  return createApi({
+    base: base.replace(/\/v1$/, ''),
+    token: cfg.authMode === 'token' ? cfg.token.trim() : undefined,
+    clientId: cfg.authMode === 'access' ? cfg.clientId.trim() : undefined,
+    clientSecret: cfg.authMode === 'access' ? cfg.clientSecret.trim() : undefined,
+  })
+}
 
 export function grantSources(store: MyriadStore, origins: string[]) {
   const api = store.platform.origins
@@ -65,8 +80,32 @@ export async function loadWeather(
   city: WeatherCity,
   air: boolean,
   signal: AbortSignal,
+  provider = 'auto',
+  warnings = true,
 ) {
   const base = widgetBase(store, route)
+  if (base && provider !== 'open-meteo') {
+    try {
+      const api = await personalApi(store, signal)
+      return parseWeather(
+        await api.weather(
+          new URLSearchParams({
+            latitude: String(city.latitude),
+            longitude: String(city.longitude),
+            air: air ? '1' : '0',
+            warnings: warnings ? '1' : '0',
+            provider,
+            lang: store.lang.value === 'zh-CN' ? 'zh' : 'en',
+          }),
+          signal,
+        ),
+      )
+    } catch (e) {
+      signal.throwIfAborted()
+      if (e instanceof PermissionRequired) throw e
+      // Older or disconnected Workers retain the free public weather path.
+    }
+  }
   const url = new URL(base ? `${base}/weather` : `${WEATHER_ORIGIN}/v1/forecast`)
   url.search = new URLSearchParams({
     latitude: String(city.latitude),
@@ -81,7 +120,8 @@ export async function loadWeather(
           daily: 'weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset',
         }),
   }).toString()
-  if (base) return parseWeather(await get(store, url, signal))
+  if (base)
+    return parseWeather({ ...(await get(store, url, signal)), warningsUnavailable: warnings })
   const aqiUrl = new URL(`${AIR_ORIGIN}/v1/air-quality`)
   aqiUrl.search = new URLSearchParams({
     latitude: String(city.latitude),
@@ -97,7 +137,7 @@ export async function loadWeather(
         })
       : Promise.resolve(null),
   ])
-  return parseWeather({ ...data, aqi: aqi?.current?.us_aqi ?? null })
+  return parseWeather({ ...data, aqi: aqi?.current?.us_aqi ?? null, warningsUnavailable: warnings })
 }
 
 export async function searchCities(

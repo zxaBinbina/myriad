@@ -1,4 +1,5 @@
-import { addDays, nthWeekday, type PlainDate, plainToUtc } from './dates'
+import { addDays, nthWeekday, type PlainDate } from './dates'
+import { Solar, Lunar } from 'lunar-typescript'
 import { solarTermIndexOn, SOLAR_TERMS, SOLAR_TERMS_EN } from './solarTerms'
 
 export interface LunarDate {
@@ -56,43 +57,28 @@ export function ganzhiOfYear(year: number): string {
   return STEMS[i % 10]! + BRANCHES[i % 12]!
 }
 
-let numericFormatter: Intl.DateTimeFormat | null = null
-let supported: boolean | null = null
-
-/** 当前环境是否支持 Intl 中国农历 */
+/** Bundled calendar also works in browsers without Intl Chinese support. */
 export function lunarSupported(): boolean {
-  if (supported === null) {
-    try {
-      const f = new Intl.DateTimeFormat('en-u-ca-chinese', { timeZone: 'UTC', month: 'numeric' })
-      supported = f.resolvedOptions().calendar === 'chinese'
-    } catch {
-      supported = false
-    }
-  }
-  return supported
+  return true
 }
 
 const cache = new Map<string, LunarDate>()
 
-/** 公历日期 → 农历（借助 Intl 的 chinese 历法，按北京时间计算） */
+/** Date-only conversion. Intl/ICU reports 2027 new year a day late. */
 export function toLunar(d: PlainDate): LunarDate | null {
-  if (!lunarSupported()) return null
   const key = `${d.year}-${d.month}-${d.day}`
   const hit = cache.get(key)
   if (hit) return hit
-  numericFormatter ??= new Intl.DateTimeFormat('en-u-ca-chinese', {
-    timeZone: 'UTC',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-  })
-  const parts: Record<string, string> = {}
-  for (const p of numericFormatter.formatToParts(plainToUtc(d))) parts[p.type] = p.value
-  const monthRaw = parts.month ?? '1'
-  const leap = /bis/i.test(monthRaw)
-  const month = parseInt(monthRaw, 10)
-  const day = parseInt(parts.day ?? '1', 10)
-  const year = parseInt(parts.relatedYear ?? parts.year ?? String(d.year), 10)
+  let result: Lunar
+  try {
+    result = Solar.fromYmd(d.year, d.month, d.day).getLunar()
+  } catch {
+    return null
+  }
+  const month = Math.abs(result.getMonth()),
+    leap = result.getMonth() < 0,
+    day = result.getDay(),
+    year = result.getYear()
   const yearName = ganzhiOfYear(year)
   const lunar: LunarDate = {
     year,

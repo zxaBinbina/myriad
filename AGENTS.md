@@ -54,7 +54,11 @@ npm run typecheck && npm test && npm run build
 - **M3 第四批（2026-11-14）**：翻译组件完成。core `widgets/translation.ts` 提供配置白名单、官方 API 参数与签名、语言映射、结果解析；百度 MD5 使用小型 `js-md5`，有道 v3 / 腾讯 TC3 使用 Web Crypto，腾讯签名有独立固定向量验证。本机 Key 放 `myriad.translation.credentials.<widgetId>`（宿主本机 storage），不得放组件 config / Yjs / secrets(storage.sync)；OpenAI Key 绑定完整端点，配置地址改变后禁止静默复用。请求均 POST、禁止重定向，文字和结果只在内存中。
 - 翻译采用原生表单和实例唯一标签 ID，Ctrl / Cmd + Enter 检查 IME 并走 `requestSubmit()`；普通 Enter 换行。普通服务并行，各自保留结果 / 错误；大模型单独模式。`useWidgetVisibility` 从资源 composable 抽出共用，隐藏取消和代次检查不得删除。搜索 `google-translate` 保留 ID、显示名改为「翻译」，只导流到已有 / 必要时新增组件，不自动发送、不写历史。
 - Worker 翻译使用 `createApi.translate`，必须带用户鉴权，不能走仅供公开来源的 `widgetJson`。默认 m2m100 明确语言（不支持 auto），可选服务端 DeepL / Microsoft；绑定均可选。
-- M3 后续：和风天气 / 预警、倒数日农历 / 法定假期 / 独立事件提醒、GitHub；尚未完成整个阶段。
+- **M3 完成（2026-11-15），等待试用反馈**：新增 GitHub、和风天气 / 预警、农历 / 法定假期倒数日与独立事件提醒。翻译按行保留换行、列表、缩进、空行，代码块原样保留；镜像算法在 core 和 Worker，各自独立部署。
+- GitHub `widgets/github.ts` 配置 / 解析、`state/github.ts` 公共和鉴权路径、组件及设置完成；私有结果通过 `useVisibleResource.persist=false` 仅存当前实例内存，凭据变化使用无秘密的代次键清空结果。公开请求不得带 Worker GitHub Token；缺失 Token 时公开能力仍可用。热图提供语义表格替代，缺失次数显示未知，不用已知数冒充总数。
+- 天气 `provider=auto/open-meteo/qweather`，私有 Worker 选择和风，失败回免费来源；空气 / 预警独立降级。倒数日支持公历 / 农历 / 已公布假期，假期缓存仅本机；独立提醒合并进现有 memo 控制器的一次 replace，不能让两套提醒互相覆盖，按主时钟时区预排 400 天，组件删除 / 关闭撤销。
+- 农历改用 `lunar-typescript`（MIT，无传递依赖）：Chrome / Node Intl Chinese 在 2027 春节存在一天误差，已以固定历法日期回归验证，不能恢复错误实现以减小包体积。
+- 验证：core 75、扩展后台 4、Worker 66 项单元测试通过，类型检查、Chrome / Firefox / playground 构建及翻译 / M3 / 原界面 / 天气 / 服务 / 便签浏览器回归通过。和风与 GitHub 私有 Key 尚未配置，已按用户要求做模拟测试；公开贡献图线上返回 371 天数据，公开仓库匿名额度耗尽会明确报错。M4 等待本阶段试用反馈。
 
 - 搜索联想与 Bing 壁纸所需的主机权限目前写在 `host_permissions`（安装时授予），与需求中「可选权限」的约定不一致，后续可改为 `optional_host_permissions` 并在首次使用时申请。
 - 新标签页焦点：采用「重新加载自身」方案，默认关闭（设置 → 打开新标签页时聚焦搜索框）。

@@ -1,27 +1,64 @@
 <script setup lang="ts">
 import {
   countdownConfig,
-  countdownOccurrence,
+  resolveCountdown,
+  HOLIDAY_SOURCES,
   dateDistance,
   parsePlainDate,
   zonedParts,
   type WidgetItem,
 } from '@myriad/core'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useNow } from '../../composables/useNow'
 import { useStore } from '../../state/store'
 import { useI18n } from '../../i18n'
 import WidgetHeader from './WidgetHeader.vue'
 import { useMemo } from '../../state/memo'
+import { useVisibleResource } from '../../composables/useVisibleResource'
+import { loadCountdownHolidays } from '../../state/countdown'
+import { grantWidgetOrigins, widgetBase } from '../../state/widgetRequests'
 const props = defineProps<{ item: WidgetItem }>()
 const store = useStore()
 const { m, t } = useI18n()
 const now = useNow()
 const memo = useMemo()
 const config = computed(() => countdownConfig(props.item.config))
-const event = computed(() =>
-  countdownOccurrence(config.value, zonedParts(now.value, store.timeZone.value)),
+const today = computed(() => zonedParts(now.value, store.timeZone.value))
+const holidayKey = computed(() =>
+  config.value.calendar === 'holiday'
+    ? `countdown-holidays:${widgetBase(store, 'auto')}:${today.value.year}`
+    : null,
 )
+const {
+  root,
+  data: holidays,
+  error,
+  reload,
+} = useVisibleResource(
+  holidayKey,
+  (signal) =>
+    loadCountdownHolidays(
+      store,
+      [today.value.year - 1, today.value.year, today.value.year + 1],
+      signal,
+    ),
+  86400000,
+  computed(() => props.item.id),
+)
+watch(holidays, (days) => {
+  if (days) memo.setHolidays(days)
+})
+async function enable() {
+  if (
+    await grantWidgetOrigins(
+      store,
+      'auto',
+      HOLIDAY_SOURCES.map((s) => new URL(s).origin),
+    )
+  )
+    void reload()
+}
+const event = computed(() => resolveCountdown(config.value, today.value, holidays.value))
 const tasks = computed(() =>
   config.value.includeTodos === false
     ? []
@@ -39,21 +76,49 @@ const tasks = computed(() =>
 </script>
 
 <template>
-  <div class="m-countdown" :class="{ 'has-tasks': tasks.length }" data-widget="countdown">
+  <div
+    ref="root"
+    class="m-countdown"
+    :class="{ 'has-tasks': tasks.length, 'is-today': event?.remaining === 0 }"
+    data-widget="countdown"
+  >
     <WidgetHeader :item="item" />
-    <div class="m-countdown__event">
-      <h4>{{ config.title || m.widget.defaultEvent }}</h4>
+    <div v-if="event" class="m-countdown__event">
+      <h4>{{ event.title || m.widget.defaultEvent }}</h4>
       <strong
         >{{ Math.abs(event.remaining) }}<small>{{ m.widgets.dayUnit }}</small></strong
       >
       <p v-if="event.remaining === 0">{{ m.widget.eventToday }}</p>
     </div>
-    <footer>
+    <div v-else class="m-countdown__event">
+      <p>
+        {{
+          config.calendar === 'holiday' ? m.widget.holidayUnavailable : m.widget.lunarUnavailable
+        }}
+      </p>
+      <button
+        v-if="error === 'permission'"
+        type="button"
+        class="m-btn m-btn--small"
+        @click="enable"
+      >
+        {{ m.widget.enable }}
+      </button>
+    </div>
+    <footer v-if="event">
       <span>{{ event.date }}</span>
       <span v-if="config.showElapsed && event.elapsed >= 0">{{
-        t(!config.title && config.date === '2025-06-20' ? 'widget.openingDay' : 'widget.elapsed', {
-          n: !config.title && config.date === '2025-06-20' ? event.elapsed + 1 : event.elapsed,
-        })
+        t(
+          !config.title && config.calendar === 'solar' && config.date === '2025-06-20'
+            ? 'widget.openingDay'
+            : 'widget.elapsed',
+          {
+            n:
+              !config.title && config.calendar === 'solar' && config.date === '2025-06-20'
+                ? event.elapsed + 1
+                : event.elapsed,
+          },
+        )
       }}</span>
     </footer>
     <section v-if="tasks.length" class="m-countdown__tasks">
@@ -85,6 +150,9 @@ const tasks = computed(() =>
   gap: 8px;
   padding: 14px 16px 12px;
   overflow: auto;
+}
+.is-today {
+  background: color-mix(in srgb, var(--blue) 9%, transparent);
 }
 .m-countdown__event {
   display: flex;

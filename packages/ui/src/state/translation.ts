@@ -7,6 +7,7 @@ import {
   translationEndpoint,
   translationOrigin,
   translationRequest,
+  translateStructured,
   TranslationError,
   TRANSLATION_SERVICES,
   type TranslationConfig,
@@ -58,6 +59,7 @@ export async function runTranslation(
 ) {
   const timed = AbortSignal.any([signal, AbortSignal.timeout(30000)])
   timed.throwIfAborted()
+  if (!input.text.trim() || input.text.length > 2000) throw new TranslationError('length')
   if (provider === 'worker') {
     const base = widgetBase(store, 'auto')
     if (!base) throw new WorkerNotConfigured()
@@ -77,17 +79,30 @@ export async function runTranslation(
   }
   const credentials = await loadTranslationCredentials(store, itemId)
   timed.throwIfAborted()
-  const request = await translationRequest(provider, input, config, credentials[provider])
-  if (store.platform.origins && !(await store.platform.origins.has(new URL(request.url).origin)))
+  if (
+    store.platform.origins &&
+    !(await store.platform.origins.has(translationOrigin(provider, config)))
+  )
     throw new PermissionRequired()
   timed.throwIfAborted()
-  const response = await fetch(request.url, { ...request.init, signal: timed })
-  if (response.status === 401 || response.status === 403) throw new TranslationError('auth')
-  if (response.status === 429 || response.status === 456) throw new TranslationError('quota')
-  if (!response.ok) throw new TranslationError('upstream')
-  const result = parseTranslation(provider, await response.json())
-  timed.throwIfAborted()
-  return result
+  return translateStructured(
+    input.text,
+    async (text, segmentSignal) => {
+      const request = await translationRequest(
+        provider,
+        { ...input, text },
+        config,
+        credentials[provider],
+      )
+      segmentSignal.throwIfAborted()
+      const response = await fetch(request.url, { ...request.init, signal: segmentSignal })
+      if (response.status === 401 || response.status === 403) throw new TranslationError('auth')
+      if (response.status === 429 || response.status === 456) throw new TranslationError('quota')
+      if (!response.ok) throw new TranslationError('upstream')
+      return parseTranslation(provider, await response.json())
+    },
+    timed,
+  )
 }
 /** Search hands text to the same widget, without sending it or persisting search history. */
 export function openTranslation(store: MyriadStore, text: string) {

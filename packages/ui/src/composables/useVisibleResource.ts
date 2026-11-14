@@ -14,7 +14,12 @@ export function useVisibleResource<T>(
   load: (signal: AbortSignal) => Promise<T>,
   maxAge: number | ((value: T) => number),
   itemId?: Ref<string>,
-  options: { autoRefresh?: boolean; retry?: boolean; revalidateOnVisible?: boolean } = {},
+  options: {
+    autoRefresh?: boolean
+    retry?: boolean
+    revalidateOnVisible?: boolean
+    persist?: boolean
+  } = {},
 ) {
   const store = useStore()
   const { root, active } = useWidgetVisibility(itemId)
@@ -44,7 +49,10 @@ export function useVisibleResource<T>(
     error.value = ''
     loading.value = true
     try {
-      const read = () => store.platform.storage.get<Entry<T>>(cacheKey)
+      const read = () =>
+        options.persist === false
+          ? Promise.resolve(undefined)
+          : store.platform.storage.get<Entry<T>>(cacheKey)
       const hit = await read()
       if (token !== version) return
       if (hit) {
@@ -62,7 +70,7 @@ export function useVisibleResource<T>(
           value,
           expires: Date.now() + (typeof maxAge === 'function' ? maxAge(value) : maxAge),
         }
-        await store.platform.storage.set(cacheKey, next)
+        if (options.persist !== false) await store.platform.storage.set(cacheKey, next)
         return next
       }
       const entry =
