@@ -43,6 +43,7 @@ function blocked() {
     ui.dragging ||
     ui.settingsOpen ||
     ui.editor ||
+    ui.widgetEditor ||
     ui.confirm ||
     ui.contextMenu ||
     ui.openFolder ||

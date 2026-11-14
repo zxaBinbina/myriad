@@ -1,4 +1,5 @@
 import { createId } from './id'
+import { normalizeMemoList } from './widgets/memo'
 import type { ContainerRef, FolderItem, Group, Id, Item, MyriadData } from './types'
 
 /** 条目所在的容器；找不到时返回 null */
@@ -199,6 +200,13 @@ export function allShortcuts(data: MyriadData) {
  * 导入数据和读取存储时调用。
  */
 export function normalizeData(data: MyriadData): MyriadData {
+  data.schema = 2
+  data.lists ??= {}
+  for (const [id, value] of Object.entries(data.lists)) {
+    const list = normalizeMemoList(value, id)
+    if (list) data.lists[id] = list
+    else delete data.lists[id]
+  }
   const seen = new Set<Id>()
   const keep = (ref: ContainerRef) => (id: Id) => {
     const item = data.items[id]

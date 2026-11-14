@@ -14,7 +14,9 @@
   "dependencies": {
     "@lucide/vue": "^1.70.0",
     "@myriad/core": "0.1.0",
+    "dompurify": "^3.4.17",
     "lucide": "^1.70.0",
+    "marked": "^18.2.0",
     "simple-icons": "^16.36.0",
     "vue": "^3.5.45"
   }

@@ -18,12 +18,15 @@ import SearchBox from './components/SearchBox.vue'
 import SettingsDrawer from './components/settings/SettingsDrawer.vue'
 import ShortcutEditor from './components/ShortcutEditor.vue'
 import SyncDialogs from './components/SyncDialogs.vue'
+import WidgetEditor from './components/widgets/WidgetEditor.vue'
 import { createI18n, I18N_KEY } from './i18n'
 import type { MyriadPlatform } from './platform'
 import { ACTIONS_KEY, createActions } from './state/actions'
 import { createDragController, DRAG_KEY } from './state/drag'
 import { createStore, STORE_KEY } from './state/store'
 import { createSyncController, SYNC_KEY } from './state/sync'
+import { createMemoController, MEMO_KEY } from './state/memo'
+import MemoDialogs from './components/widgets/MemoDialogs.vue'
 
 const props = defineProps<{ platform: MyriadPlatform }>()
 const emit = defineEmits<{ secret: [] }>()
@@ -33,11 +36,13 @@ const i18n = createI18n(store.lang)
 const drag = createDragController(store)
 const actions = createActions(store, i18n)
 const sync = createSyncController(store)
+const memo = createMemoController(store)
 provide(STORE_KEY, store)
 provide(I18N_KEY, i18n)
 provide(DRAG_KEY, drag)
 provide(ACTIONS_KEY, actions)
 provide(SYNC_KEY, sync)
+provide(MEMO_KEY, memo)
 
 const { m } = i18n
 const s = store.settings
@@ -101,6 +106,9 @@ const modalOpen = computed(
   () =>
     !!(
       store.ui.editor ||
+      store.ui.widgetEditor ||
+      memo.editing.value ||
+      memo.security.value ||
       store.ui.confirm ||
       store.ui.bookmarkImportOpen ||
       store.ui.contextMenu ||
@@ -169,6 +177,7 @@ onMounted(async () => {
   void sync.init()
 })
 onBeforeUnmount(() => {
+  memo.dispose()
   removeEventListener('keydown', onKeydown)
   clearTimeout(transitionTimer)
 })
@@ -259,6 +268,8 @@ function onRootContextMenu(e: MouseEvent) {
     <Dock v-if="store.loaded.value" />
     <FolderPopup />
     <ShortcutEditor />
+    <WidgetEditor />
+    <MemoDialogs />
     <BookmarkImport v-if="store.platform.bookmarks" />
     <Onboarding />
     <Dashboard />

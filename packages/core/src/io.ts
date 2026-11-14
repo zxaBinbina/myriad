@@ -30,7 +30,13 @@ export function loadSettings(saved: unknown): MyriadSettings {
 }
 
 export function loadLocalState(saved: unknown): LocalState {
-  return mergeDefaults(defaultLocalState(), saved)
+  const local = mergeDefaults(defaultLocalState(), saved)
+  // 旧版只有 Access 凭据，升级时保留原来的连接方式。
+  const oldSync = isObject(saved) && isObject(saved.sync) ? saved.sync : null
+  if (oldSync?.authMode !== 'token' && oldSync?.authMode !== 'access')
+    local.sync.authMode = oldSync && (oldSync.clientId || oldSync.enabled) ? 'access' : 'token'
+  local.schema = 2
+  return local
 }
 
 export function isMyriadData(v: unknown): v is MyriadData {
@@ -40,7 +46,8 @@ export function isMyriadData(v: unknown): v is MyriadData {
 export function loadData(saved: unknown): MyriadData | null {
   if (!isMyriadData(saved)) return null
   const data = structuredClone(saved) as MyriadData
-  data.schema = 1
+  data.schema = 2
+  if (!isObject(data.lists)) data.lists = {}
   if (typeof data.updatedAt !== 'number') data.updatedAt = Date.now()
   for (const g of data.groups) if (!Array.isArray(g.items)) g.items = []
   return normalizeData(data)
@@ -113,7 +120,14 @@ export function appendData(target: MyriadData, incoming: MyriadData): void {
     const copy = structuredClone(item)
     copy.id = fresh(id)
     if (copy.type === 'folder') copy.children = copy.children.map(fresh)
+    if (copy.type === 'widget' && copy.kind === 'memo' && typeof copy.config.listId === 'string')
+      copy.config.listId = fresh(copy.config.listId)
     target.items[copy.id] = copy
+  }
+  for (const [id, list] of Object.entries(incoming.lists)) {
+    const copy = structuredClone(list)
+    copy.id = fresh(id)
+    target.lists[copy.id] = copy
   }
   for (const g of incoming.groups) {
     target.groups.push({ ...structuredClone(g), id: fresh(g.id), items: g.items.map(fresh) })

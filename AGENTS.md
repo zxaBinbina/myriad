@@ -21,10 +21,10 @@ npm 正式包名计划为 `@zxabinbina/myriad-core` / `@zxabinbina/myriad-ui`，
 - **样式**：沿用 homepage 的语义 CSS 变量（`--bg`、`--panel`、`--text`、`--muted`、`--blue`（强调色）、`--border` …），定义在 `styles/theme.css`，按 `data-palette` × `data-theme` 切换。组件类名用 `m-` 前缀 + BEM。尊重 `prefers-reduced-motion` 与设置里的「减少动态效果」。
 - **首帧主题**：`store.ts` 把配色与明暗写入 `localStorage['myriad-boot']`，扩展和 playground 各自的 `public/theme-init.js` 在样式加载前同步读取，避免闪烁。改主题相关逻辑时三处一起改。
 - **小组件**：在 `components/widgets/registry.ts` 注册（图标、可选尺寸、异步组件），`WidgetKind` 在 core 的 `types.ts` 里扩充。组件只在可见时拉数据。
-- **权限**：`storage` 之外的权限一律做成可选，用到时通过 `browser.permissions.request` 申请。
+- **权限**：支持动态申请的权限做成可选，用到时通过 `browser.permissions.request` 申请。`storage` 与 `geolocation` 必需；Chrome 不支持将定位权限声明为可选（[官方限制](https://developer.chrome.com/docs/extensions/reference/api/permissions#step_2_declare_optional_permissions_in_the_manifest)），定位只在用户点击时调用，不对它使用 `permissions.request`。
 - **格式**：Prettier（无分号、单引号、行宽 100）。
 - **同步**：分组 / 条目 / Dock（`data`）、参与同步的设置键（`settings`）、搜索历史（`history`）三个分区写入同一个 Yjs 文档。store 每次写存储前通过 `onPersist` 钩子把修改写进文档（`reconcile*` 只写变化部分）并广播给其他标签页，然后才写存储，这样其他标签页先收到 Yjs 更新、不会产生重复操作；远端修改由 `applyRemote` 写回 store。新增设置项不用改同步代码，但新增顶层设置键要放进 `SETTINGS_SCOPES` 的某个范围，否则不会同步。时间戳（`updatedAt`）不进文档。
-- **同步配置**（`LocalState.sync`，含 Service Token）只存本机，不导出、不同步。store 加载时会整体替换 `local.sync` 等嵌套对象，组件里不要缓存这些对象的引用，用 `computed(() => store.local.sync)`。
+- **同步配置**（`LocalState.sync`，含独立连接令牌或 Service Token）只存本机，不导出、不同步。store 加载时会整体替换 `local.sync` 等嵌套对象，组件里不要缓存这些对象的引用，用 `computed(() => store.local.sync)`。
 - **Logo**：源文件在 `docs/logo.svg`（只有图形，不含文字），扩展图标 `apps/extension/public/icon/*.png` 由它导出（`magick -background none -density 600 docs/logo.svg -resize 128x128 …`），改 Logo 时一起重新生成。
 - **scoped 样式里的 `:global()`**：必须把整个选择器包进去，写成 `:global(.myriad.has-wallpaper .m-foo)`。写成 `:global(.myriad.has-wallpaper) .m-foo` 时 Vue 会丢掉后半段，规则会作用到整个页面（曾导致关闭图标名称后整页 `display: none`）。
 
@@ -40,9 +40,22 @@ npm run typecheck && npm test && npm run build
 
 ## 已知问题 / 待办
 
+- **M3 首批（2026-11-14）**：天气 / 一言 / 倒数日已接入 registry 和组件设置（`WidgetEditor.vue`）。类型与日期 / 上游解析在 `core/src/widgets.ts`，扩充 `WidgetKind`，配置仍使用现有 `WidgetItem.config`，无需改动存储外层格式。已有数据不自动加组件。网络缓存保存在 `myriad.cache.widget.*`，不进入同步；一言收藏保存在对应组件配置中，参与现有同步与导出。
+- `useVisibleResource` 同时检查当前分组、视口、极简仪表盘与标签页前台；隐藏中止请求。Web Locks 对缓存键串行化，多实例 / 多标签页不会重复获取当天一言。定位与新增主机权限通过 `MyriadPlatform`：定位只在点击时读取位置，新增主机权限只在点击时申请。
+- **2026-11-14 定位权限警告修复**：将 `geolocation` 从 `optional_permissions` 移到 `permissions`，去掉扩展宿主中的无效动态申请，直接在点击定位时调用 Geolocation API。避免 Chrome 忽略声明而同时导致定位失败；其余可选权限不变。
+- **2026-11-14 倒数日文字精简**：大数字下不再重复显示「还有 N 天 / 已过去 N 天」；当天保留「就在今天」，底部日期、开服天数及待办联动保持原有显示。
+- **2026-11-14 Minecraft 备选查询**：状态接口失败或 Minecraft 状态未知时，按 `servers[].fallbackKind`（Java / 基岩 / 关闭，旧配置默认 Java）查询所填地址；明确离线不回退。支持独立或嵌套 Minecraft JSON，不要求 `services` / `overall`；网站监控仍验证完整格式，两组件共享新的原始 JSON 缓存。备选类型、Worker 地址参与组件缓存键；查询失败不伪造离线，隐藏取消时不启动备选。无需更改外层 schema，不自动新增组件或历史。
+- **2026-11-14 待办入口调整**：添加任务按钮移到 `WidgetHeader` 右侧，以加号打开任务详情表单，仅在已解锁的待办视图显示；后续按用户反馈移除重复的快速输入，保留单一添加入口。表单通过实例唯一 ID 与页脚 submit 按钮关联，名称输入后可回车保存，无需填写日期等选项；保留 `@submit.prevent` 与既有数据校验。
+- **M3 第二批（2026-11-14）**：新增网站监控 / Minecraft / 汇率，配置解析与 MOTD / 历史处理在 `core/src/widgets/`，组件设置复用 `AdvancedWidgetSettings.vue`。按用户要求去掉组件编号英文小标签。监控与默认 Minecraft 共用状态源缓存，监控不轮询或因切回前台重新获取；手动刷新也遵守 `refreshAfterMs`。自定义 Minecraft 的历史只读用户配置接口，未配置则隐藏；不记录历史。Java 版 Worker SLP 连接失败退回 mcstatus.io（Cloudflare TCP 不允许连接部分托管地址），组件网络超时 20 秒，以容纳两次尝试。汇率历史主源失败后按五天取样，历史查询不得使用今天的备用报价。
+- **M3 第三批（2026-11-14）**：待办 / Markdown 便签、共享清单、重复任务、提醒及日历 / 倒数日联动、可选端到端加密完成。`MyriadData.schema` 升到 2，新增 `lists` 表，旧数据迁移为空表；合并导入统一重映射清单和组件引用。每个清单的标题、便签和任务分别是 JSON 字符串或原子密文字符串（避免 Yjs 分开合并 IV / ciphertext），AES-GCM AAD 绑定 keyId 与字段 ID。控制器 `state/memo.ts` 只在内存解密，编辑提交前检查字段原值，模式切换创建新清单并一次更新共享引用。旧云端明文历史 / 备份不自动清除，界面及 README 明示。
+- 密钥通过 `MyriadPlatform.secrets` 独立存储，扩展是 `chrome.storage.sync`，网页是本机 storage；不进入普通导出或 Yjs。随机密钥或 PBKDF2-SHA256 600,000 次口令派生，密钥文件独立导入导出。`MarkdownText` 原生 `setHTML` + 按需 DOMPurify 回退，保留允许的节点而不重新序列化；禁用原始输入，移除远程图片 / 脚本 / 事件属性。
+- 提醒经 `MyriadPlatform.reminders`，扩展可选申请 notifications + alarms；后台保存任务 / 已发送记录，启动和授权后恢复，更新串行执行，完成 / 删除撤销，记录 30 天内的已发送 ID。网页仅在打开时计时，Web Locks 防止同源标签页重复通知。任务提醒按主时钟时区，无时间用 09:00；拒权保留高亮。重复任务的后续 ID 由系列与日期确定，编辑日期 / 重复方式重置锚点。
+- M3 后续：和风天气 / 预警、倒数日农历 / 法定假期 / 独立事件提醒、翻译、GitHub；尚未完成整个阶段。
+
 - 搜索联想与 Bing 壁纸所需的主机权限目前写在 `host_permissions`（安装时授予），与需求中「可选权限」的约定不一致，后续可改为 `optional_host_permissions` 并在首次使用时申请。
 - 新标签页焦点：采用「重新加载自身」方案，默认关闭（设置 → 打开新标签页时聚焦搜索框）。
 - `simple-icons` 整包约 5MB，打进扩展后体积较大；可考虑按需加载或只保留常用图标。
-- 同步端到端测试目前靠 Chrome DevTools MCP 手动跑（playground 两个隔离上下文 + 本地 `wrangler dev`），尚未写进 `scripts/`。
+- 浏览器回归用 `scripts/check-ui.py`（含 Dock 放大包覆）、`scripts/check-widgets.py`（组件设置、每日缓存、跨日、可见性）、`scripts/check-services.py`（监控 / Minecraft / 汇率及备用历史）、`scripts/check-minecraft.py`（仅地址、独立 JSON、接口失败 / 未知备选、明确离线、版本切换缓存、取消）、`scripts/check-memo.py`（共享清单、循环、权限拒绝 / 通知、原生 Sanitizer / DOMPurify、独立上下文密钥与口令解锁）、`scripts/check-sync.py`（两个隔离页面联调本地 Worker）。后台提醒测试单独放在扩展 `test/`，不要从纯 core 测试导入扩展 / UI 平台类型。
 - M2 联调时出现过一次 `myriad.local` 写入落后于内存（`lastSync` 旧了几分钟），没能重现；已给持久化钩子加 try/catch，后续留意。
-- 网站版（M5）通过 Cookie 访问私有接口时，需要在 Access 应用里开启「绕过 OPTIONS 预检」，并在 Worker 的 `ALLOWED_ORIGINS` 里列出主页来源。
+- 2026-11-14：已支持独立连接令牌（默认）及可选 Access 鉴权，`LocalState.schema` 为 2，`loadLocalState` 迁移旧 Access 凭据。原令牌只存本机，不导出、不写入 Yjs。服务的 D1 文件上限由 `features.blobMaxBytes` 返回并显示在同步页。
+- 网站版（M5）选择 Access 并通过 Cookie 访问私有接口时，需要在 Access 应用里开启「绕过 OPTIONS 预检」，并在 Worker 的 `ALLOWED_ORIGINS` 里列出主页来源。

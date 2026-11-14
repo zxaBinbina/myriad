@@ -93,7 +93,7 @@ export function defaultSettings(): MyriadSettings {
 
 export function defaultLocalState(): LocalState {
   return {
-    schema: 1,
+    schema: 2,
     activeGroup: null,
     searchHistory: [],
     onboarded: false,
@@ -110,6 +110,8 @@ export function defaultSyncConfig(): SyncConfig {
   return {
     enabled: false,
     apiBase: DEFAULT_API_BASE,
+    authMode: 'token',
+    token: '',
     clientId: '',
     clientSecret: '',
     scopes: defaultSyncScopes(),
@@ -121,7 +123,7 @@ export function defaultSyncConfig(): SyncConfig {
 
 export function emptyData(): MyriadData {
   const group: Group = { id: createId('g'), name: '常用', icon: 'star', items: [] }
-  return { schema: 1, groups: [group], items: {}, dock: [], updatedAt: Date.now() }
+  return { schema: 2, groups: [group], items: {}, dock: [], lists: {}, updatedAt: Date.now() }
 }
 
 type PresetEntry = [title: string, url: string]
@@ -256,5 +258,5 @@ export function presetData(language: 'zh-CN' | 'en' = 'zh-CN'): MyriadData {
     }
   })
   const dock = PRESET_DOCK.map((s) => add(createShortcut(s[0], s[1])))
-  return { schema: 1, groups, items, dock, updatedAt: Date.now() }
+  return { schema: 2, groups, items, dock, lists: {}, updatedAt: Date.now() }
 }

@@ -3,8 +3,8 @@ import type { MyriadPlatform } from '@myriad/ui'
 import { browser } from 'wxt/browser'
 
 /** chrome.storage.local 存储；其他标签页的修改通过 onChanged 通知 */
-function createExtensionStorage(): StorageAdapter {
-  const area = browser.storage.local
+function createExtensionStorage(areaName: 'local' | 'sync' = 'local'): StorageAdapter {
+  const area = browser.storage[areaName]
   return {
     async get<T>(key: string) {
       const r = await area.get(key)
@@ -17,8 +17,8 @@ function createExtensionStorage(): StorageAdapter {
       await area.remove(key)
     },
     subscribe(listener) {
-      const onChanged = (changes: Record<string, { newValue?: unknown }>, areaName: string) => {
-        if (areaName !== 'local') return
+      const onChanged = (changes: Record<string, { newValue?: unknown }>, changedArea: string) => {
+        if (changedArea !== areaName) return
         for (const [k, c] of Object.entries(changes)) listener(k, c.newValue)
       }
       browser.storage.onChanged.addListener(onChanged)
@@ -34,6 +34,15 @@ export function createExtensionPlatform(): MyriadPlatform {
   return {
     kind: 'extension',
     storage: createExtensionStorage(),
+    secrets: createExtensionStorage('sync'),
+    reminders: {
+      has: () => browser.permissions.contains({ permissions: ['notifications', 'alarms'] }),
+      request: () => browser.permissions.request({ permissions: ['notifications', 'alarms'] }),
+      replace: async (jobs) => {
+        const result = await browser.runtime.sendMessage({ type: 'myriad-reminders', jobs })
+        if (!result?.ok) throw new Error('reminder-scheduling-failed')
+      },
+    },
     version: browser.runtime.getManifest().version,
     repoUrl: 'https://github.com/zxaBinbina/myriad',
     focusRequested,
@@ -46,6 +55,19 @@ export function createExtensionPlatform(): MyriadPlatform {
     origins: {
       has: (origin) => browser.permissions.contains({ origins: [`${origin}/*`] }),
       request: (origin) => browser.permissions.request({ origins: [`${origin}/*`] }),
+      requestMany: (origins) =>
+        browser.permissions.request({ origins: origins.map((o) => `${o}/*`) }),
+    },
+    location: {
+      // 权限已在 manifest 中声明；只在用户点击定位时读取位置。
+      locate: () =>
+        new Promise((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(
+            (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude }),
+            reject,
+            { timeout: 10000, maximumAge: 300000 },
+          ),
+        ),
     },
     grabFocus: () => {
       // 由扩展发起的导航会把焦点交给页面而不是地址栏

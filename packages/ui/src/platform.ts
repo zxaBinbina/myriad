@@ -21,9 +21,25 @@ export interface MyriadPlatform {
   origins?: {
     has(origin: string): Promise<boolean>
     request(origin: string): Promise<boolean>
+    requestMany?(origins: string[]): Promise<boolean>
+  }
+  location?: { locate(): Promise<{ latitude: number; longitude: number }> }
+  /** 加密清单的密钥：扩展使用 storage.sync，网站版省略时存本机。 */
+  secrets?: StorageAdapter
+  reminders?: {
+    has(): Promise<boolean>
+    request(): Promise<boolean>
+    replace(jobs: ReminderJob[]): Promise<void>
   }
   /** 扩展：让页面从地址栏取得焦点（会重新加载一次页面） */
   grabFocus?: () => void
   /** 页面是否由 grabFocus 重新加载而来 */
   focusRequested?: boolean
+}
+
+export interface ReminderJob {
+  id: string
+  at: number
+  title: string
+  message: string
 }

@@ -10,6 +10,7 @@
  */
 
 import type { SyncScopes } from './sync/scopes'
+import type { MemoList } from './widgets/memo'
 
 export type Id = string
 
@@ -73,7 +74,16 @@ export interface FolderItem {
   children: Id[]
 }
 
-export type WidgetKind = 'calendar' | 'analogClock'
+export type WidgetKind =
+  | 'calendar'
+  | 'analogClock'
+  | 'weather'
+  | 'quote'
+  | 'countdown'
+  | 'status'
+  | 'minecraft'
+  | 'currency'
+  | 'memo'
 
 /** 以网格单元为单位的尺寸：`列x行` */
 export type WidgetSize = '1x2' | '2x1' | '2x2' | '2x4' | '4x2' | '4x4'
@@ -97,11 +107,12 @@ export interface Group {
 }
 
 export interface MyriadData {
-  schema: 1
+  schema: 2
   groups: Group[]
   items: Record<Id, Item>
   /** Dock：快捷方式与文件夹，所有分组共用 */
   dock: Id[]
+  lists: Record<Id, MemoList>
   /** 最后修改时间（毫秒） */
   updatedAt: number
 }
@@ -270,6 +281,9 @@ export interface SyncConfig {
   enabled: boolean
   /** myriad_api 地址 */
   apiBase: string
+  authMode: 'token' | 'access'
+  /** 独立连接令牌，只存本机 */
+  token: string
   /** Cloudflare Access Service Token（扩展使用） */
   clientId: string
   clientSecret: string
@@ -288,7 +302,7 @@ export interface SyncConfig {
 
 /** 只保存在本机、不参与同步的状态 */
 export interface LocalState {
-  schema: 1
+  schema: 2
   /** 当前分组 */
   activeGroup: Id | null
   searchHistory: { q: string; engine: string; at: number }[]

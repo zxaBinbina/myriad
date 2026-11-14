@@ -102,6 +102,11 @@ export function createDragController(store: MyriadStore) {
 
   function onPointerDown(e: PointerEvent, id: Id) {
     if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return
+    if (
+      (e.target as HTMLElement).closest('button, input, select, textarea, a, [data-no-drag]') &&
+      store.data.items[id]?.type === 'widget'
+    )
+      return
     const el = e.currentTarget as HTMLElement
     pending = { id, x: e.clientX, y: e.clientY, el, pointerId: e.pointerId }
     addEventListener('pointermove', onMove)

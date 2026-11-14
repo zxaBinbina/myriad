@@ -136,6 +136,15 @@ export function createActions(store: MyriadStore, i18n: I18n) {
     }
     const def = WIDGETS[item.kind]
     return [
+      ...(def?.settings
+        ? [
+            {
+              label: msg.widget.settings,
+              icon: 'settings',
+              action: () => (store.ui.widgetEditor = id),
+            },
+          ]
+        : []),
       {
         label: msg.items.widgetSize,
         icon: 'scaling',

@@ -1131,7 +1131,35 @@ function close() {
                 :disabled="sc.enabled"
               />
             </SettingRow>
-            <SettingRow :label="m.sync.token" :desc="m.sync.tokenDesc" stacked>
+            <SettingRow :label="m.sync.authMode">
+              <select
+                v-model="sc.authMode"
+                class="m-select"
+                :aria-label="m.sync.authMode"
+                :disabled="sc.enabled"
+              >
+                <option value="token">{{ m.sync.personalAuth }}</option>
+                <option value="access">{{ m.sync.accessAuth }}</option>
+              </select>
+            </SettingRow>
+            <SettingRow
+              v-if="sc.authMode === 'token'"
+              :label="m.sync.personalToken"
+              :desc="m.sync.personalTokenDesc"
+              stacked
+            >
+              <input
+                v-model.trim="sc.token"
+                class="m-input"
+                type="password"
+                name="myriad-sync-token"
+                :aria-label="m.sync.personalToken"
+                autocomplete="off"
+                spellcheck="false"
+                :disabled="sc.enabled"
+              />
+            </SettingRow>
+            <SettingRow v-else :label="m.sync.token" :desc="m.sync.tokenDesc" stacked>
               <div class="m-sync-token">
                 <input
                   v-model.trim="sc.clientId"
@@ -1183,6 +1211,16 @@ function close() {
               <SettingRow :label="m.sync.iconProxy" :desc="m.sync.iconProxyDesc">
                 <MSwitch v-model="sc.iconProxy" :label="m.sync.iconProxy" />
               </SettingRow>
+              <p
+                v-if="sync.canBlobs.value && sync.state.features?.blobMaxBytes"
+                class="m-drawer__note"
+              >
+                {{
+                  t('sync.fileLimit', {
+                    size: Math.round(sync.state.features.blobMaxBytes / 1024 / 1024),
+                  })
+                }}
+              </p>
               <template v-if="sc.localOnly.length">
                 <h3 class="m-drawer__sub">{{ m.sync.localOnly }}</h3>
                 <p class="m-drawer__note">{{ m.sync.localOnlyDesc }}</p>

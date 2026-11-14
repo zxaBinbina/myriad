@@ -2,6 +2,7 @@
 import {
   addDays,
   daysInMonth,
+  dateDistance,
   festivalsOn,
   type PlainDate,
   toLunar,
@@ -10,18 +11,23 @@ import {
   ymd,
   zonedParts,
 } from '@myriad/core'
-import { ChevronLeft, ChevronRight, RotateCcw } from '@lucide/vue'
+import { ChevronLeft, ChevronRight, RotateCcw, SlidersHorizontal } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useHolidays } from '../../composables/useHolidays'
 import { useNow } from '../../composables/useNow'
 import { useI18n } from '../../i18n'
 import { useStore } from '../../state/store'
 import { widgetSpan } from './registry'
+import { useMemo } from '../../state/memo'
 
 const props = defineProps<{ item: WidgetItem }>()
 const store = useStore()
 const { m, t, lang } = useI18n()
 const now = useNow()
+const memo = useMemo()
+const tasks = computed(() =>
+  props.item.config.includeTodos === false ? [] : memo.calendarTasks.value,
+)
 
 const span = computed(() => widgetSpan(props.item.size))
 const wide = computed(() => span.value.w >= 4)
@@ -134,6 +140,9 @@ const title = computed(() =>
 )
 
 const selected = ref<string | null>(null)
+const selectedTasks = computed(() =>
+  tasks.value.filter((entry) => entry.task.due === (selected.value ?? ymd(today.value))),
+)
 const detail = computed(() => {
   const key = selected.value ?? ymd(today.value)
   const cell = cells.value.find((c) => c.key === key)
@@ -163,7 +172,7 @@ interface Upcoming {
   name: string
   date: string
   days: number
-  tone: 'fest' | 'term' | 'off'
+  tone: 'fest' | 'term' | 'off' | 'task'
 }
 const upcoming = computed<Upcoming[]>(() => {
   if (!(wide.value && tall.value)) return []
@@ -197,7 +206,22 @@ const upcoming = computed<Upcoming[]>(() => {
       })
     }
   }
-  return out.slice(0, UPCOMING_MAX)
+  for (const entry of tasks.value) {
+    const days = dateDistance(today.value, {
+      year: Number(entry.task.due.slice(0, 4)),
+      month: Number(entry.task.due.slice(5, 7)),
+      day: Number(entry.task.due.slice(8, 10)),
+    })
+    if (days >= 0 && days <= UPCOMING_DAYS)
+      out.push({
+        key: `task:${entry.listId}:${entry.task.id}`,
+        name: entry.task.title,
+        date: entry.task.due.slice(5),
+        days,
+        tone: 'task',
+      })
+  }
+  return out.sort((a, b) => a.days - b.days).slice(0, UPCOMING_MAX)
 })
 </script>
 
@@ -223,6 +247,14 @@ const upcoming = computed<Upcoming[]>(() => {
       <div class="m-cal__month">
         <header class="m-cal__head">
           <span class="m-cal__title">{{ title }}</span>
+          <button
+            type="button"
+            class="m-icon-btn m-icon-btn--small"
+            :aria-label="m.widget.settings"
+            @click="store.ui.widgetEditor = item.id"
+          >
+            <SlidersHorizontal :size="13" />
+          </button>
           <button
             v-if="offset"
             type="button"
@@ -271,6 +303,11 @@ const upcoming = computed<Upcoming[]>(() => {
           >
             <span class="m-cal__num">{{ c.date.day }}</span>
             <span
+              v-if="tasks.some((entry) => entry.task.due === c.key)"
+              class="m-cal__task-dot"
+              :title="m.memo.calendarTasks"
+            />
+            <span
               v-if="c.sub && (wide || tall)"
               class="m-cal__sub"
               :class="{ 'is-fest': c.festival }"
@@ -283,6 +320,17 @@ const upcoming = computed<Upcoming[]>(() => {
         </div>
       </div>
     </div>
+    <section v-if="selectedTasks.length" class="m-cal__tasks">
+      <span>{{ m.memo.calendarTasks }}</span
+      ><button
+        v-for="entry in selectedTasks"
+        :key="`${entry.listId}:${entry.task.id}`"
+        type="button"
+        @click="memo.edit(entry.listId, entry.task)"
+      >
+        {{ entry.task.title }}
+      </button>
+    </section>
     <section v-if="wide && tall" class="m-cal__upcoming" :aria-label="m.widgets.upcoming">
       <p class="m-eyebrow">{{ m.widgets.upcoming }}</p>
       <ul v-if="upcoming.length" class="m-cal__list">
@@ -308,6 +356,32 @@ const upcoming = computed<Upcoming[]>(() => {
   height: 100%;
   padding: 12px 14px;
   font-size: 12px;
+}
+.m-cal__task-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.m-cal__tasks {
+  font-size: 10px;
+  color: var(--muted);
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 5px;
+}
+.m-cal__tasks button {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font-size: 11px;
+  padding: 0;
+  overflow-wrap: anywhere;
 }
 .m-cal__main {
   display: flex;

@@ -47,11 +47,12 @@ onBeforeUnmount(() => {
 })
 
 /*
- * 放大效果：格子宽度固定（Dock 边框不变），图标用 transform 放大，
+ * 放大效果：格子宽度固定，图标用 transform 放大，背景跟随实际图标边界扩展。
  * 相邻图标向两侧让开；指针下方的图标保持原位，所以放大中心始终跟着指针。
  */
 const bar = ref<HTMLElement | null>(null)
 const fx = ref<{ s: number; x: number }[]>([])
+const growth = ref({ left: 0, right: 0, top: 0 })
 const magnify = computed(
   () => store.settings.dock.hover === 'magnify' && !store.reducedMotion.value && !dragging.value,
 )
@@ -83,6 +84,31 @@ function layout() {
     acc += extra[i]!
     return { s: scales[i]!, x }
   })
+  // 只扩展独立背景，不改变格子坐标，避免指针锚点随背景尺寸来回移动。
+  const base = bar.value.getBoundingClientRect()
+  const padding = getComputedStyle(bar.value)
+  const bounds = rects.map((r, i) => {
+    const { s, x } = fx.value[i]!
+    return {
+      left: r.left + x - (r.width * (s - 1)) / 2,
+      right: r.right + x + (r.width * (s - 1)) / 2,
+      top: r.bottom - r.height * s,
+    }
+  })
+  growth.value = {
+    left: Math.max(
+      0,
+      base.left + parseFloat(padding.paddingLeft) - Math.min(...bounds.map((b) => b.left)),
+    ),
+    right: Math.max(
+      0,
+      Math.max(...bounds.map((b) => b.right)) + parseFloat(padding.paddingRight) - base.right,
+    ),
+    top: Math.max(
+      0,
+      base.top + parseFloat(padding.paddingTop) - Math.min(...bounds.map((b) => b.top)),
+    ),
+  }
 }
 
 function onBarMove(e: PointerEvent) {
@@ -95,6 +121,7 @@ function onBarLeave() {
   cancelAnimationFrame(frame)
   frame = 0
   fx.value = []
+  growth.value = { left: 0, right: 0, top: 0 }
   if (visibility.value === 'auto-hide') {
     clearTimeout(leaveTimer)
     leaveTimer = setTimeout(() => (nearBottom.value = false), 450)
@@ -110,7 +137,7 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
   >
     <div
       ref="bar"
-      class="m-dock m-glass"
+      class="m-dock"
       :class="[
         `m-dock--${store.settings.dock.hover}`,
         { 'is-magnify': magnify, 'is-empty': !items.length },
@@ -125,6 +152,16 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
       @pointerleave="onBarLeave"
       @contextmenu.self="actions.openMenu($event, actions.dockMenu())"
     >
+      <div
+        class="m-dock__surface m-glass"
+        aria-hidden="true"
+        :style="{
+          left: `${magnify ? -growth.left : 0}px`,
+          right: `${magnify ? -growth.right : 0}px`,
+          top: `${magnify ? -growth.top : 0}px`,
+        }"
+        @contextmenu="actions.openMenu($event, actions.dockMenu())"
+      />
       <TransitionGroup name="m-dock-item">
         <div
           v-for="(id, i) in items"
@@ -160,6 +197,8 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
   pointer-events: auto;
 }
 .m-dock {
+  position: relative;
+  isolation: isolate;
   --icon-size: min(var(--dock-icon, 52px), 52px);
   --icon-radius: var(--dock-radius, 13px);
   display: flex;
@@ -172,6 +211,22 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
   overflow-y: visible;
   border-radius: 26px;
   scrollbar-width: none;
+}
+.m-dock__surface {
+  position: absolute;
+  bottom: 0;
+  z-index: -1;
+  border-radius: inherit;
+  transition:
+    left 0.09s linear,
+    right 0.09s linear,
+    top 0.09s linear;
+}
+.m-dock:not(:hover) .m-dock__surface {
+  transition:
+    left 0.28s var(--motion-ease),
+    right 0.28s var(--motion-ease),
+    top 0.28s var(--motion-ease);
 }
 .m-dock.is-magnify {
   overflow: visible;
@@ -219,6 +274,7 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
 @media (prefers-reduced-motion: reduce) {
   .m-dock-zone,
   .m-dock__slot,
+  .m-dock__surface,
   .m-dock__slot :deep(.m-tile__icon),
   .m-dock-item-move {
     transition: none;

@@ -95,8 +95,9 @@ export function createSyncController(store: MyriadStore) {
   function makeApi() {
     return createApi({
       base: cfg().apiBase,
-      clientId: cfg().clientId.trim(),
-      clientSecret: cfg().clientSecret.trim(),
+      token: cfg().authMode === 'token' ? cfg().token.trim() : undefined,
+      clientId: cfg().authMode === 'access' ? cfg().clientId.trim() : undefined,
+      clientSecret: cfg().authMode === 'access' ? cfg().clientSecret.trim() : undefined,
     })
   }
 
@@ -406,7 +407,11 @@ export function createSyncController(store: MyriadStore) {
   /* ---------------- 文件与数据源 ---------------- */
 
   async function uploadBlob(key: string, blob: Blob) {
-    if (canBlobs.value && api) await api.putBlob(key, blob)
+    if (canBlobs.value && api) {
+      if (state.features?.blobMaxBytes && blob.size > state.features.blobMaxBytes)
+        throw new ApiError('too-large', 413)
+      await api.putBlob(key, blob)
+    }
   }
 
   async function fetchBlob(key: string): Promise<Blob | null> {

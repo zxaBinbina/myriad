@@ -6,11 +6,13 @@ let timer: ReturnType<typeof setTimeout> | undefined
 
 function tick() {
   now.value = new Date()
+  if (document.visibilityState !== 'visible') return
   // 对齐到整秒
   timer = setTimeout(tick, 1000 - (Date.now() % 1000) + 5)
 }
 
 function onVisibility() {
+  clearTimeout(timer)
   if (document.visibilityState === 'visible') {
     clearTimeout(timer)
     tick()

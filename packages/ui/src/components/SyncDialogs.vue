@@ -7,9 +7,11 @@ import { useStore } from '../state/store'
 import { type ConflictChoice, conflictTarget, useSync } from '../state/sync'
 import { plainValue, settingLabel, settingScopeName, settingValue } from '../state/syncLabels'
 import MDialog from './base/MDialog.vue'
+import { useMemo } from '../state/memo'
 
 const store = useStore()
 const sync = useSync()
+const memo = useMemo()
 const { m, t } = useI18n()
 
 /* ---------------- 冲突 ---------------- */
@@ -29,6 +31,35 @@ watch(
 )
 
 const isSetting = (c: ResolvedConflict) => c.path[0] === 'settings'
+const isMemo = (c: ResolvedConflict) => c.path[0] === 'data' && c.path[1] === 'lists'
+const decoded = ref<Record<string, string>>({})
+let decodeGeneration = 0
+watch(
+  [() => sync.conflicts.value, () => Object.values(memo.views).map((v) => v.locked)],
+  async ([conflicts]) => {
+    const generation = ++decodeGeneration,
+      values: Record<string, string> = {}
+    await Promise.all(
+      conflicts.filter(isMemo).flatMap((c) =>
+        ['local', 'remote'].map(async (side) => {
+          if (c.path[3] !== 'fields' || !c.path[2] || !c.path[4]) return
+          try {
+            const value = await memo.conflictValue(
+              c.path[2],
+              c.path[4],
+              side === 'local' ? c.local : c.remote,
+            )
+            if (value !== undefined) values[`${c.path.join('/')}:${side}`] = value
+          } catch {
+            values[`${c.path.join('/')}:${side}`] = m.value.memo.locked
+          }
+        }),
+      ),
+    )
+    if (generation === decodeGeneration) decoded.value = values
+  },
+  { immediate: true },
+)
 
 /** 设置冲突多一个「仅本机」选项：保留本机值，以后不再同步这一项 */
 function sides(c: ResolvedConflict): ConflictChoice[] {
@@ -36,6 +67,7 @@ function sides(c: ResolvedConflict): ConflictChoice[] {
 }
 
 function title(c: ResolvedConflict) {
+  if (isMemo(c)) return memo.views[c.path[2] ?? '']?.content?.title || m.value.memo.list
   const target = conflictTarget(store, c)
   if (target.kind === 'item') return t('sync.conflictItem', { name: target.name })
   if (target.kind === 'group') return t('sync.conflictGroup', { name: target.name })
@@ -43,6 +75,12 @@ function title(c: ResolvedConflict) {
 }
 
 function field(c: ResolvedConflict) {
+  if (isMemo(c))
+    return c.path[4] === 'note'
+      ? m.value.memo.note
+      : c.path[4] === 'title'
+        ? m.value.memo.listName
+        : m.value.memo.tasks
   if (isSetting(c)) return settingLabel(m.value, c.path.slice(1))
   const [head, ...rest] = conflictTarget(store, c).field.split('.')
   const fields = m.value.sync.fields as Record<string, string>
@@ -50,6 +88,11 @@ function field(c: ResolvedConflict) {
 }
 
 function show(c: ResolvedConflict, v: Json | undefined): string {
+  if (isMemo(c)) {
+    if (c.path[3] !== 'fields') return plainValue(m.value, v)
+    const side = v === c.local ? 'local' : 'remote'
+    return decoded.value[`${c.path.join('/')}:${side}`] ?? m.value.widget.loading
+  }
   return isSetting(c) ? settingValue(m.value, c.path.slice(1), v) : plainValue(m.value, v)
 }
 
@@ -110,6 +153,14 @@ function apply() {
         <p class="m-conflict__title">
           {{ title(c) }} <span class="m-conflict__field">{{ field(c) }}</span>
         </p>
+        <button
+          v-if="isMemo(c) && memo.views[c.path[2] ?? '']?.locked"
+          type="button"
+          class="m-btn m-btn--small"
+          @click="memo.security.value = c.path[2] ?? null"
+        >
+          {{ m.memo.importKey }}
+        </button>
         <div class="m-conflict__opts" role="radiogroup" :aria-label="title(c)">
           <label
             v-for="side in sides(c)"

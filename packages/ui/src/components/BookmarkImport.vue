@@ -103,10 +103,11 @@ function doImport() {
   if (!store.local.onboarded || store.firstRun.value) {
     store.replaceData(
       normalizeData({
-        schema: 1,
+        schema: 2,
         groups: result.groups,
         items: result.items,
         dock: [],
+        lists: {},
         updatedAt: Date.now(),
       }),
     )

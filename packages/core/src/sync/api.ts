@@ -5,6 +5,8 @@ import { fromBase64, toBase64 } from './engine'
 export interface ApiConfig {
   /** 服务地址，如 https://myriad.zxabinbina.cc.cd */
   base: string
+  /** Worker 独立连接令牌；填写后使用 Bearer 鉴权 */
+  token?: string
   /** Cloudflare Access Service Token（扩展使用）；网站版留空，依靠登录 Cookie */
   clientId?: string
   clientSecret?: string
@@ -30,6 +32,7 @@ export interface ApiFeatures {
   icons: boolean
   auth: boolean
   unsplash: boolean
+  blobMaxBytes?: number
 }
 
 export interface BackupInfo {
@@ -81,8 +84,15 @@ export function createApi(config: ApiConfig, fetcher: typeof fetch = (...a) => f
   const base = normalizeBase(config.base)
 
   async function request(path: string, init: RequestInit = {}, auth = true): Promise<Response> {
+    if (auth && (config.token || config.clientSecret)) {
+      const url = new URL(base)
+      if (url.protocol !== 'https:' && url.hostname !== 'localhost' && url.hostname !== '127.0.0.1')
+        throw new ApiError('auth')
+    }
     const headers = new Headers(init.headers)
-    if (auth && config.clientId && config.clientSecret) {
+    if (auth && config.token) {
+      headers.set('Authorization', `Bearer ${config.token}`)
+    } else if (auth && config.clientId && config.clientSecret) {
       headers.set('CF-Access-Client-Id', config.clientId)
       headers.set('CF-Access-Client-Secret', config.clientSecret)
     }
@@ -93,7 +103,7 @@ export function createApi(config: ApiConfig, fetcher: typeof fetch = (...a) => f
         headers,
         // Access 未登录时会重定向到登录页，不跟随
         redirect: 'manual',
-        credentials: auth && !config.clientId ? 'include' : 'omit',
+        credentials: auth && !config.token && !config.clientId ? 'include' : 'omit',
         cache: 'no-store',
       })
     } catch {
