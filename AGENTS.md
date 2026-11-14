@@ -40,6 +40,7 @@ npm run typecheck && npm test && npm run build
 
 ## 已知问题 / 待办
 
+- **2026-11-14 Dock 背景调整**：按用户新要求，放大模式的背景只沿 X 轴扩展（translateX + scaleX），上下边界保持固定，格子坐标不变。取消原有 top 增长与位置属性动画，保留减弱动态效果与离开复原；`check-ui.py` 分别验证首个、中间、末个图标的横向包覆和固定高度。
 - **M3 首批（2026-11-14）**：天气 / 一言 / 倒数日已接入 registry 和组件设置（`WidgetEditor.vue`）。类型与日期 / 上游解析在 `core/src/widgets.ts`，扩充 `WidgetKind`，配置仍使用现有 `WidgetItem.config`，无需改动存储外层格式。已有数据不自动加组件。网络缓存保存在 `myriad.cache.widget.*`，不进入同步；一言收藏保存在对应组件配置中，参与现有同步与导出。
 - `useVisibleResource` 同时检查当前分组、视口、极简仪表盘与标签页前台；隐藏中止请求。Web Locks 对缓存键串行化，多实例 / 多标签页不会重复获取当天一言。定位与新增主机权限通过 `MyriadPlatform`：定位只在点击时读取位置，新增主机权限只在点击时申请。
 - **2026-11-14 定位权限警告修复**：将 `geolocation` 从 `optional_permissions` 移到 `permissions`，去掉扩展宿主中的无效动态申请，直接在点击定位时调用 Geolocation API。避免 Chrome 忽略声明而同时导致定位失败；其余可选权限不变。
@@ -50,7 +51,10 @@ npm run typecheck && npm test && npm run build
 - **M3 第三批（2026-11-14）**：待办 / Markdown 便签、共享清单、重复任务、提醒及日历 / 倒数日联动、可选端到端加密完成。`MyriadData.schema` 升到 2，新增 `lists` 表，旧数据迁移为空表；合并导入统一重映射清单和组件引用。每个清单的标题、便签和任务分别是 JSON 字符串或原子密文字符串（避免 Yjs 分开合并 IV / ciphertext），AES-GCM AAD 绑定 keyId 与字段 ID。控制器 `state/memo.ts` 只在内存解密，编辑提交前检查字段原值，模式切换创建新清单并一次更新共享引用。旧云端明文历史 / 备份不自动清除，界面及 README 明示。
 - 密钥通过 `MyriadPlatform.secrets` 独立存储，扩展是 `chrome.storage.sync`，网页是本机 storage；不进入普通导出或 Yjs。随机密钥或 PBKDF2-SHA256 600,000 次口令派生，密钥文件独立导入导出。`MarkdownText` 原生 `setHTML` + 按需 DOMPurify 回退，保留允许的节点而不重新序列化；禁用原始输入，移除远程图片 / 脚本 / 事件属性。
 - 提醒经 `MyriadPlatform.reminders`，扩展可选申请 notifications + alarms；后台保存任务 / 已发送记录，启动和授权后恢复，更新串行执行，完成 / 删除撤销，记录 30 天内的已发送 ID。网页仅在打开时计时，Web Locks 防止同源标签页重复通知。任务提醒按主时钟时区，无时间用 09:00；拒权保留高亮。重复任务的后续 ID 由系列与日期确定，编辑日期 / 重复方式重置锚点。
-- M3 后续：和风天气 / 预警、倒数日农历 / 法定假期 / 独立事件提醒、翻译、GitHub；尚未完成整个阶段。
+- **M3 第四批（2026-11-14）**：翻译组件完成。core `widgets/translation.ts` 提供配置白名单、官方 API 参数与签名、语言映射、结果解析；百度 MD5 使用小型 `js-md5`，有道 v3 / 腾讯 TC3 使用 Web Crypto，腾讯签名有独立固定向量验证。本机 Key 放 `myriad.translation.credentials.<widgetId>`（宿主本机 storage），不得放组件 config / Yjs / secrets(storage.sync)；OpenAI Key 绑定完整端点，配置地址改变后禁止静默复用。请求均 POST、禁止重定向，文字和结果只在内存中。
+- 翻译采用原生表单和实例唯一标签 ID，Ctrl / Cmd + Enter 检查 IME 并走 `requestSubmit()`；普通 Enter 换行。普通服务并行，各自保留结果 / 错误；大模型单独模式。`useWidgetVisibility` 从资源 composable 抽出共用，隐藏取消和代次检查不得删除。搜索 `google-translate` 保留 ID、显示名改为「翻译」，只导流到已有 / 必要时新增组件，不自动发送、不写历史。
+- Worker 翻译使用 `createApi.translate`，必须带用户鉴权，不能走仅供公开来源的 `widgetJson`。默认 m2m100 明确语言（不支持 auto），可选服务端 DeepL / Microsoft；绑定均可选。
+- M3 后续：和风天气 / 预警、倒数日农历 / 法定假期 / 独立事件提醒、GitHub；尚未完成整个阶段。
 
 - 搜索联想与 Bing 壁纸所需的主机权限目前写在 `host_permissions`（安装时授予），与需求中「可选权限」的约定不一致，后续可改为 `optional_host_permissions` 并在首次使用时申请。
 - 新标签页焦点：采用「重新加载自身」方案，默认关闭（设置 → 打开新标签页时聚焦搜索框）。

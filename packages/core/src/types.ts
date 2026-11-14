@@ -84,6 +84,7 @@ export type WidgetKind =
   | 'minecraft'
   | 'currency'
   | 'memo'
+  | 'translation'
 
 /** 以网格单元为单位的尺寸：`列x行` */
 export type WidgetSize = '1x2' | '2x1' | '2x2' | '2x4' | '4x2' | '4x4'

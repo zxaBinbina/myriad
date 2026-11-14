@@ -1,6 +1,6 @@
-import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
+import { onBeforeUnmount, ref, watch, type Ref } from 'vue'
 import { useStore } from '../state/store'
-import { findContainer } from '@myriad/core'
+import { useWidgetVisibility } from './useWidgetVisibility'
 
 export class PermissionRequired extends Error {}
 interface Entry<T> {
@@ -17,25 +17,11 @@ export function useVisibleResource<T>(
   options: { autoRefresh?: boolean; retry?: boolean; revalidateOnVisible?: boolean } = {},
 ) {
   const store = useStore()
-  const root = ref<HTMLElement | null>(null)
-  const intersecting = ref(false)
-  const foreground = ref(document.visibilityState === 'visible')
-  const active = computed(() => {
-    const container = itemId ? findContainer(store.data, itemId.value) : null
-    return (
-      intersecting.value &&
-      foreground.value &&
-      (!itemId ||
-        (container?.kind === 'group' &&
-          container.id === store.activeGroup.value.id &&
-          (store.settings.layout.mode === 'grid' || store.ui.dashboardOpen)))
-    )
-  })
+  const { root, active } = useWidgetVisibility(itemId)
   const data = ref<T>() as Ref<T | undefined>
   const loading = ref(false)
   const error = ref<'permission' | 'network' | ''>('')
   const stale = ref(false)
-  let observer: IntersectionObserver | undefined
   let controller: AbortController | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
   let version = 0
@@ -117,20 +103,6 @@ export function useVisibleResource<T>(
       return
     void reload()
   })
-  function visibility() {
-    foreground.value = document.visibilityState === 'visible'
-  }
-  onMounted(() => {
-    document.addEventListener('visibilitychange', visibility)
-    observer = new IntersectionObserver(([entry]) => {
-      intersecting.value = !!entry?.isIntersecting
-    })
-    if (root.value) observer.observe(root.value)
-  })
-  onBeforeUnmount(() => {
-    stop()
-    observer?.disconnect()
-    document.removeEventListener('visibilitychange', visibility)
-  })
+  onBeforeUnmount(stop)
   return { root, data, active, loading, error, stale, reload }
 }

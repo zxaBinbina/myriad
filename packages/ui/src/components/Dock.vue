@@ -47,12 +47,12 @@ onBeforeUnmount(() => {
 })
 
 /*
- * 放大效果：格子宽度固定，图标用 transform 放大，背景跟随实际图标边界扩展。
+ * 放大效果：格子宽度固定，图标用 transform 放大，背景只跟随左右边界扩展。
  * 相邻图标向两侧让开；指针下方的图标保持原位，所以放大中心始终跟着指针。
  */
 const bar = ref<HTMLElement | null>(null)
 const fx = ref<{ s: number; x: number }[]>([])
-const growth = ref({ left: 0, right: 0, top: 0 })
+const surface = ref({ x: 0, scale: 1 })
 const magnify = computed(
   () => store.settings.dock.hover === 'magnify' && !store.reducedMotion.value && !dragging.value,
 )
@@ -92,22 +92,20 @@ function layout() {
     return {
       left: r.left + x - (r.width * (s - 1)) / 2,
       right: r.right + x + (r.width * (s - 1)) / 2,
-      top: r.bottom - r.height * s,
     }
   })
-  growth.value = {
-    left: Math.max(
-      0,
-      base.left + parseFloat(padding.paddingLeft) - Math.min(...bounds.map((b) => b.left)),
-    ),
-    right: Math.max(
-      0,
-      Math.max(...bounds.map((b) => b.right)) + parseFloat(padding.paddingRight) - base.right,
-    ),
-    top: Math.max(
-      0,
-      base.top + parseFloat(padding.paddingTop) - Math.min(...bounds.map((b) => b.top)),
-    ),
+  const left = Math.max(
+    0,
+    base.left + parseFloat(padding.paddingLeft) - Math.min(...bounds.map((b) => b.left)),
+  )
+  const right = Math.max(
+    0,
+    Math.max(...bounds.map((b) => b.right)) + parseFloat(padding.paddingRight) - base.right,
+  )
+  // 只平移和缩放 X 轴：高度与上下边界保持不变，且不触发布局动画。
+  surface.value = {
+    x: (right - left) / 2,
+    scale: base.width > 0 ? (base.width + left + right) / base.width : 1,
   }
 }
 
@@ -121,7 +119,7 @@ function onBarLeave() {
   cancelAnimationFrame(frame)
   frame = 0
   fx.value = []
-  growth.value = { left: 0, right: 0, top: 0 }
+  surface.value = { x: 0, scale: 1 }
   if (visibility.value === 'auto-hide') {
     clearTimeout(leaveTimer)
     leaveTimer = setTimeout(() => (nearBottom.value = false), 450)
@@ -156,9 +154,7 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
         class="m-dock__surface m-glass"
         aria-hidden="true"
         :style="{
-          left: `${magnify ? -growth.left : 0}px`,
-          right: `${magnify ? -growth.right : 0}px`,
-          top: `${magnify ? -growth.top : 0}px`,
+          transform: magnify ? `translateX(${surface.x}px) scaleX(${surface.scale})` : undefined,
         }"
         @contextmenu="actions.openMenu($event, actions.dockMenu())"
       />
@@ -214,19 +210,13 @@ onBeforeUnmount(() => cancelAnimationFrame(frame))
 }
 .m-dock__surface {
   position: absolute;
-  bottom: 0;
+  inset: 0;
   z-index: -1;
   border-radius: inherit;
-  transition:
-    left 0.09s linear,
-    right 0.09s linear,
-    top 0.09s linear;
+  transition: transform 0.09s linear;
 }
 .m-dock:not(:hover) .m-dock__surface {
-  transition:
-    left 0.28s var(--motion-ease),
-    right 0.28s var(--motion-ease),
-    top 0.28s var(--motion-ease);
+  transition: transform 0.28s var(--motion-ease);
 }
 .m-dock.is-magnify {
   overflow: visible;

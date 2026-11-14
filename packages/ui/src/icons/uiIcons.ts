@@ -1,5 +1,6 @@
 import {
   AppWindow,
+  Languages,
   ListTodo,
   Activity,
   Coins,
@@ -31,6 +32,7 @@ import { GROUP_ICONS } from '../components/base/groupIcons'
 /** 菜单等处按名称使用的 lucide 图标 */
 export const UI_ICONS: Record<string, Component> = {
   ...GROUP_ICONS,
+  languages: Languages,
   'list-todo': ListTodo,
   activity: Activity,
   coins: Coins,

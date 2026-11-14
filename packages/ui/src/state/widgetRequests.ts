@@ -44,6 +44,7 @@ export function grantSources(store: MyriadStore, origins: string[]) {
   const api = store.platform.origins
   if (!api) return Promise.resolve(true)
   const unique = [...new Set(origins)]
+  if (!unique.length) return Promise.resolve(true)
   return api.requestMany
     ? api.requestMany(unique)
     : Promise.all(unique.map((origin) => api.request(origin))).then((results) =>

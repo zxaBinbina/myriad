@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, useId, watch } from 'vue'
 import {
   countdownConfig,
   parsePlainDate,
@@ -21,6 +21,7 @@ import MDialog from '../base/MDialog.vue'
 import MSwitch from '../base/MSwitch.vue'
 import AdvancedWidgetSettings from './AdvancedWidgetSettings.vue'
 import MemoSettings from './MemoSettings.vue'
+import TranslationSettings from './TranslationSettings.vue'
 
 const store = useStore()
 const { m, t } = useI18n()
@@ -34,6 +35,8 @@ const countdown = ref(countdownConfig({}))
 const calendarTasks = ref(true)
 const advanced = ref<InstanceType<typeof AdvancedWidgetSettings> | null>(null)
 const memoSettings = ref<InstanceType<typeof MemoSettings> | null>(null)
+const translationSettings = ref<InstanceType<typeof TranslationSettings> | null>(null)
+const translationFormId = useId()
 const query = ref('')
 const results = ref<WeatherCity[]>([])
 const searched = ref(false)
@@ -68,6 +71,22 @@ function close() {
 }
 async function save() {
   if (!item.value) return
+  if (item.value.kind === 'translation' && translationSettings.value) {
+    if (busy.value) return
+    busy.value = true
+    error.value = ''
+    const target = item.value
+    try {
+      const config = await translationSettings.value.save()
+      target.config = config
+      if (item.value === target) close()
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : m.value.translation.storageFailed
+    } finally {
+      busy.value = false
+    }
+    return
+  }
   if (item.value.kind === 'calendar') {
     item.value.config = { ...item.value.config, includeTodos: calendarTasks.value }
     close()
@@ -205,6 +224,15 @@ onBeforeUnmount(() => {
     @close="close"
   >
     <div v-if="item" class="m-widget-editor">
+      <TranslationSettings
+        v-if="item.kind === 'translation'"
+        :key="item.id"
+        ref="translationSettings"
+        :initial="item.config"
+        :item-id="item.id"
+        :form-id="translationFormId"
+        @save="save"
+      />
       <MemoSettings
         v-if="item.kind === 'memo'"
         :key="item.id"
@@ -419,7 +447,13 @@ onBeforeUnmount(() => {
     </div>
     <template #footer
       ><button type="button" class="m-btn" @click="close">{{ m.common.cancel }}</button
-      ><button type="button" class="m-btn m-btn--primary" @click="save">
+      ><button
+        :type="item?.kind === 'translation' ? 'submit' : 'button'"
+        :form="item?.kind === 'translation' ? translationFormId : undefined"
+        class="m-btn m-btn--primary"
+        :disabled="busy"
+        @click="item?.kind !== 'translation' && save()"
+      >
         {{ m.common.save }}
       </button></template
     >

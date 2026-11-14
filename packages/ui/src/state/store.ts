@@ -83,6 +83,7 @@ export function createStore(platform: MyriadPlatform) {
     openFolder: null as Id | null,
     editor: null as EditorState | null,
     widgetEditor: null as Id | null,
+    translationInput: null as { itemId: Id; text: string; nonce: number } | null,
     bookmarkImportOpen: false,
     contextMenu: null as { x: number; y: number; items: ContextMenuItem[] } | null,
     toasts: [] as ToastMessage[],

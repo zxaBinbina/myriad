@@ -1,5 +1,6 @@
 import type { ExchangeRequest, ExchangeResponse, SyncTransport } from './engine'
 import { fromBase64, toBase64 } from './engine'
+import type { TranslationInput, TranslationResult, WorkerTranslator } from '../widgets/translation'
 
 /** myriad_api 的连接信息 */
 export interface ApiConfig {
@@ -33,6 +34,8 @@ export interface ApiFeatures {
   auth: boolean
   unsplash: boolean
   blobMaxBytes?: number
+  translation?: boolean
+  translators?: WorkerTranslator[]
 }
 
 export interface BackupInfo {
@@ -107,6 +110,7 @@ export function createApi(config: ApiConfig, fetcher: typeof fetch = (...a) => f
         cache: 'no-store',
       })
     } catch {
+      init.signal?.throwIfAborted()
       throw new ApiError('network')
     }
     if (res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400))
@@ -154,6 +158,11 @@ export function createApi(config: ApiConfig, fetcher: typeof fetch = (...a) => f
       json<{ ok: boolean; version: string; features: ApiFeatures }>('/v1/health', {}, false),
     me: () => json<{ identity: string; version: string; features: ApiFeatures }>('/v1/me'),
     geo: () => json<GeoInfo>('/v1/geo', {}, false),
+    translate: (input: TranslationInput, provider: WorkerTranslator, signal: AbortSignal) =>
+      json<TranslationResult>('/v1/me/translate', {
+        ...send('POST', { ...input, provider }),
+        signal,
+      }),
     listBackups: () => json<{ backups: BackupInfo[]; config: BackupConfig }>('/v1/me/backups'),
     createBackup: (reason: 'manual' | 'import' | 'rollback') =>
       json<{ backup: BackupInfo | null }>('/v1/me/backups', send('POST', { reason })),

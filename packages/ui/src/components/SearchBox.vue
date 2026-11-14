@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { openTranslation } from '../state/translation'
 import {
   allShortcuts,
   buildSearchUrl,
@@ -11,7 +12,7 @@ import {
   parseSuggestions,
   resolveEngines,
 } from '@myriad/core'
-import { ChevronDown, Clock3, Globe, Search, X } from '@lucide/vue'
+import { ChevronDown, Clock3, Globe, Languages, Search, X } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from '../i18n'
 import { useStore } from '../state/store'
@@ -167,6 +168,13 @@ function resetEngine() {
 function submit(text = query.value, useEngine = engine.value) {
   const q = text.trim()
   if (!q) return
+  if (useEngine.id === 'google-translate') {
+    openTranslation(store, q)
+    query.value = ''
+    resetEngine()
+    input.value?.blur()
+    return
+  }
   const newTab = s.value.openIn === 'new'
   if (!prefixMode.value && looksLikeUrl(q) && text === query.value && activeIndex.value < 0) {
     store.openUrl(normalizeUrl(q), newTab)
@@ -294,7 +302,11 @@ defineExpose({ focus, input })
         @blur="onBlur"
       >
         <span class="m-search__engine-icon"
-          ><ItemIcon :title="engine.name" :url="engine.home" :icon="{ source: 'auto' }"
+          ><Languages v-if="engine.id === 'google-translate'" :size="22" /><ItemIcon
+            v-else
+            :title="engine.name"
+            :url="engine.home"
+            :icon="{ source: 'auto' }"
         /></span>
         <ChevronDown v-if="s.switchByClick" :size="14" class="m-search__chev" />
       </button>
@@ -378,7 +390,11 @@ defineExpose({ focus, input })
             @blur="onBlur"
           >
             <span class="m-search__opt-icon"
-              ><ItemIcon :title="e.name" :url="e.home" :icon="{ source: 'auto' }"
+              ><Languages v-if="e.id === 'google-translate'" :size="18" /><ItemIcon
+                v-else
+                :title="e.name"
+                :url="e.home"
+                :icon="{ source: 'auto' }"
             /></span>
             <span class="m-search__opt-name">{{ e.name }}</span>
             <kbd v-if="e.prefix && s.switchByPrefix" class="m-kbd">{{ e.prefix }}</kbd>

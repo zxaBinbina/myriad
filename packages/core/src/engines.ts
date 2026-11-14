@@ -159,8 +159,8 @@ export const BUILTIN_ENGINES: BuiltinEngine[] = [
   },
   {
     id: 'google-translate',
-    name: 'Google 翻译',
-    nameEn: 'Google Translate',
+    name: '翻译',
+    nameEn: 'Translate',
     url: 'https://translate.google.com/?sl=auto&tl=zh-CN&text=%s&op=translate',
     home: 'https://translate.google.com',
     prefix: 'tr',

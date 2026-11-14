@@ -89,7 +89,7 @@ with sync_playwright() as p:
     before = page.locator('.m-groups__tab[aria-selected=true]').inner_text()
     page.mouse.move(1380, 600); page.mouse.wheel(0, 200); page.wait_for_timeout(800)  # 此时为侧栏模式，用纵向滚轮
     check(page.locator('.m-groups__tab[aria-selected=true]').inner_text() != before, '空白处滚轮切换分组')
-    # Dock：背景跟随首尾与中间图标扩展，格子位置保持稳定，移开后还原。
+    # Dock：背景只横向跟随首尾与中间图标扩展，上下边界与格子保持稳定。
     dock = page.locator('.m-dock')
     slots = dock.locator('.m-dock__slot')
     base = dock.bounding_box()
@@ -99,7 +99,8 @@ with sync_playwright() as p:
         page.wait_for_timeout(250)
         surface = dock.locator('.m-dock__surface').bounding_box()
         bounds = dock.locator('.m-tile__icon').evaluate_all('(icons) => icons.map(el => { const r=el.getBoundingClientRect(); return {left:r.left,right:r.right,top:r.top,bottom:r.bottom} })')
-        check(all(r['left'] >= surface['x'] - 1 and r['right'] <= surface['x'] + surface['width'] + 1 and r['top'] >= surface['y'] - 1 and r['bottom'] <= surface['y'] + surface['height'] + 1 for r in bounds), f'Dock 背景包含放大的图标（位置 {index}）')
+        check(surface['width'] > base['width'] + 1 and max(r['right'] - r['left'] for r in bounds) > slot['width'] + 1 and all(r['left'] >= surface['x'] - 1 and r['right'] <= surface['x'] + surface['width'] + 1 for r in bounds), f'Dock 背景横向包含放大的图标（位置 {index}）')
+        check(abs(surface['y'] - base['y']) < 1 and abs(surface['height'] - base['height']) < 1, f'Dock 背景上下边界保持固定（位置 {index}）')
         current = dock.bounding_box()
         check(abs(current['x'] - base['x']) < 1 and abs(current['width'] - base['width']) < 1, 'Dock 放大时格子布局不漂移')
     page.screenshot(path='artifacts/dock-magnify.png')
