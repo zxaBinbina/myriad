@@ -27,6 +27,13 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as profile:
         ignore_default_args=['--disable-extensions'],
         args=['--enable-unsafe-extension-debugging'],
     )
+    # Icon providers can return 404 even when the built extension is healthy.
+    # Keep this loading/storage/style smoke test independent of those services.
+    ctx.route('https://**/*', lambda route: route.fulfill(
+        status=200,
+        content_type='image/svg+xml' if route.request.resource_type == 'image' else 'application/json',
+        body='<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"/>' if route.request.resource_type == 'image' else '{}',
+    ))
     cdp = ctx.browser.new_browser_cdp_session()
     loaded = cdp.send('Extensions.loadUnpacked', {'path': EXT})
     sw = ctx.service_workers[0] if ctx.service_workers else ctx.wait_for_event('serviceworker', timeout=15000)
