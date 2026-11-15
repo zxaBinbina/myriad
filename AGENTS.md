@@ -58,7 +58,7 @@ npm run typecheck && npm test && npm run build
 - GitHub `widgets/github.ts` 配置 / 解析、`state/github.ts` 公共和鉴权路径、组件及设置完成；私有结果通过 `useVisibleResource.persist=false` 仅存当前实例内存，凭据变化使用无秘密的代次键清空结果。公开请求不得带 Worker GitHub Token；缺失 Token 时公开能力仍可用。热图提供语义表格替代，缺失次数显示未知，不用已知数冒充总数。
 - 天气 `provider=auto/open-meteo/qweather`，私有 Worker 选择和风，失败回免费来源；空气 / 预警独立降级。倒数日支持公历 / 农历 / 已公布假期，假期缓存仅本机；独立提醒合并进现有 memo 控制器的一次 replace，不能让两套提醒互相覆盖，按主时钟时区预排 400 天，组件删除 / 关闭撤销。
 - 农历改用 `lunar-typescript`（MIT，无传递依赖）：Chrome / Node Intl Chinese 在 2027 春节存在一天误差，已以固定历法日期回归验证，不能恢复错误实现以减小包体积。
-- 验证：core 75、扩展后台 4、Worker 66 项单元测试通过，类型检查、Chrome / Firefox / playground 构建及翻译 / M3 / 原界面 / 天气 / 服务 / 便签浏览器回归通过。和风与 GitHub 私有 Key 尚未配置，已按用户要求做模拟测试；公开贡献图线上返回 371 天数据，公开仓库匿名额度耗尽会明确报错。M4 等待本阶段试用反馈。
+- 验证：core 75、扩展后台 4、Worker 66 项单元测试通过，类型检查、Chrome / Firefox / playground 构建及翻译 / M3 / 原界面 / 天气 / 服务 / 便签浏览器回归通过。和风与 GitHub 私有 Key 尚未配置，已按用户要求做模拟测试；公开贡献图线上返回 371 天数据，公开仓库匿名额度耗尽会明确报错。M3 试用交接记录见上一级进度说明，M4 已按用户指令继续开发。
 
 - 搜索联想与 Bing 壁纸所需的主机权限目前写在 `host_permissions`（安装时授予），与需求中「可选权限」的约定不一致，后续可改为 `optional_host_permissions` 并在首次使用时申请。
 - 新标签页焦点：采用「重新加载自身」方案，默认关闭（设置 → 打开新标签页时聚焦搜索框）。
@@ -74,3 +74,29 @@ npm run typecheck && npm test && npm run build
 - 服务密钥验证：core 79 / 扩展后台 4 / Worker 74 项测试、类型检查、Chrome / Firefox / playground 构建通过；界面、翻译、M3 与真实本地 Worker 的凭据浏览器回归通过，包括另一标签页即时更新、密文上传、失败保留输入、空白保留、删除和端点绑定。线上 Worker 已更新，凭据接口只读鉴权 / no-store 检查通过；真实第三方密钥仍待填写后验证供应商权限与额度。
 
 - 2026-11-15 正式 Chrome 验证：通过用户提供的 127.0.0.1:9222 调试连接，确认没有未保存编辑后重载扩展；「服务密钥」页九类服务入口、状态读取与空白密钥输入正常，未填写 / 上传测试密钥。截图：`myriad/artifacts/credentials-real-chrome.png`。
+
+## M4 · 信息流与聚合搜索（2026-11-15）
+
+用户已试用，M4 反馈修正完成。新增 `core/content.ts`、`hotSources.ts`、`search.ts` 与 `widgets/feeds.ts`；inert htmlparser2 解析、RSS / Atom、URL 规范化与去重、12 源适配及官方站内搜索。`content.ts` / `hotSources.ts` / `search.ts` 与 Worker 对应文件保持字节一致；修改后用 `cmp` 检查。
+
+- UI 新增 FeedWidget / FeedSettings / FeedPreview / SearchResults，状态在 `state/feeds.ts` / `search.ts`。新增 feeds kind，不变更外层 schema；已有数据不自动加组件，聚合搜索默认关闭，旧设置通过 defaults 补齐。收藏 / 已读 / RSS 订阅沿用 config 同步，抓取数据只存缓存。
+- 每次只加载选中的可见来源；`useVisibleResource.cacheKey` 可保持跨日旧快照，Web Locks 共享每日缓存，刷新按钮遵守当前周期。RSSHub 路由拒绝 `//host`，必须留在配置实例的 origin。
+- 扩展预览通过 `MyriadPlatform.preview`；可选 `declarativeNetRequestWithHostAccess` / scripting / webNavigation 在原始点击的同步段申请。Chrome 禁止把 `declarativeNetRequest` 本身声明为可选权限。临时随机 ID 规则限定精确 URL、tab、扩展 initiator、sub_frame；仅该响应移除 XFO 和完整 CSP，sandbox 限制 iframe。关闭 / 隐藏 / 导航 / 移除 tab 清理；正文用结构化文本 / 媒体块渲染，不插入原始 HTML，iframe 失败转阅读模式。自动滚动尊重暂停、悬停与减少动态效果。
+- 聚合页使用 `#search` 路由、CSS columns、IntersectionObserver，合并重复链接与来源，按引擎过滤，支持加载更多、当前页 / 新标签页、标题右侧新标签页入口。各来源独立错误与后台取消；通用 API 只能经 `personalApi` 的鉴权路径，公开官方 API 不使用个人 Key。
+- Google CSE / Brave 出现在现有服务密钥页，复用加密接口。没有 Key 时明确降级，网站访客通用搜索只给跳转。真实搜索 Key 未提供，固定 API 模拟与无 Key 501 已验证。
+- GitHub 账号 pattern 使用 `[a-zA-Z0-9](?:[a-zA-Z0-9]|-){0,38}`，无需字符类连字符转义，保留原生 v 正则约束校验与回车保存。
+- 验证：core 101 / 扩展 7 / Worker 83 项测试、类型检查和 Chrome / Firefox / playground 构建通过；`scripts/check-m4.py` 20 项交互、原界面 / Dock、天气缓存与可见性、M3 浏览器回归通过。M4 可在 `npm run build:web` 后以 `MYRIAD_OFFLINE=1 python3 scripts/check-m4.py` 离线运行。
+- 线上 Worker 10 个热榜源成功，B 站 / 抖音受限；RSS、reader、npm 搜索与私有 AI 摘要返回 200，重复摘要一致。AI 模型改用已验证的 fast-v2，旧 instruct 绑定已退役。homepage 未改动，M5 尚未开始。
+
+- 真实 Chrome 兼容修复：通过可选 webNavigation 只读取当前扩展标签页的预览子 frame ID，scripting 不再尝试注入扩展主页面；按完整 URL 筛选直接子 frame。规则安装限时 5 秒，停滞时转阅读模式，晚完成的规则清理有独立测试；URL 规则大小写敏感。
+
+- 真实 Chrome 已验证带 X-Frame-Options DENY / CSP frame-ancestors none 的本地测试正文可在限定 iframe 中加载；首次授权后 DNR 添加规则曾停滞，重载扩展后恢复，已加入超时回退。追加 webNavigation 授权与自动滚动收尾验证仍待浏览器确认，不能将其写为全部实测完成。
+
+### M4 试用反馈（2026-11-15）
+
+- `FeedConfig.selectedSource` / `selectedSubscription` 独立保存在组件 config，热榜 / RSS 模式切换及设置保存不清除，移除来源时回退首个可用来源。`hoverPreview` 默认开启，与点击 `preview` 分别可配。
+- `FeedHoverPreview` 使用 interestfor + hint popover，约 500ms 兴趣延迟；旧浏览器按需加载 interestfor，缺少 anchor 时按触发位置定位。保持键盘焦点；视频平台 / 搜索页 / 仓库不启用悬浮文章预览。悬浮不申请权限、不记已读；移入气泡或播放媒体暂停滚动，隐藏 / 关闭 / 切组取消请求，点击仍走原 FeedPreview。
+- `ReaderArticle.blocks` 结构化保存文本、图片、视频、音频与不可展示媒体，保留 paragraphs 兼容旧缓存和摘要。共用 `ReaderContent`，不执行原始 HTML；支持懒加载图片 / picture、相对地址、视频 poster / source 和音频，原生 controls + preload none，失败显示占位符。媒体点击不冒泡到原文跳转；关闭销毁播放器。
+- `store.onPersist` 可等待异步钩子；同步钩子先保存 CRDT 快照，再发布本地数据，防止 400ms 快照防抖窗口内快速重载恢复旧平台。
+- 验证：105 core / 7 扩展 / 85 Worker 测试、类型检查和 Chrome / Firefox / playground 构建通过。原 M4 20 项及 `scripts/check-m4-feedback.py` 新增 23 项通过（生成真实本地 WebM / WAV 验证播放，媒体失败、悬浮、选择重载、原生 v 校验）；脚本离线使用构建产物与隔离上下文，不写用户数据，需要 ffmpeg。
+- Worker reader v2 已部署 `d72d58ca-8a79-45dc-ad0a-a025382d0f16`；线上 example.com / MDN reader 200 且有 blocks，MDN 的第三方嵌入内容返回占位符。原界面 / M3 及真实本地 Worker 双设备同步、备份 / 回滚、D1 文件与重载恢复回归通过（隔离临时库）。Chrome CDP 初次只读连接成功，但后续新连接等待浏览器响应超时；此次交互证据来自隔离 headless Chrome 157，不冒充用户当前扩展已经重载。M5 尚未开始。

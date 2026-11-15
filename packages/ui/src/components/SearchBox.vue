@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { openTranslation } from '../state/translation'
+import { openAggregate } from '../state/search'
 import {
   allShortcuts,
   buildSearchUrl,
@@ -184,7 +185,12 @@ function submit(text = query.value, useEngine = engine.value) {
       list.unshift({ q, engine: useEngine.id, at: Date.now() })
       store.local.searchHistory = list.slice(0, 100)
     }
-    store.openUrl(buildSearchUrl(useEngine, q), newTab)
+    if (s.value.aggregate.enabled) {
+      openAggregate(store, q, useEngine.id)
+      menuOpen.value = false
+      focused.value = false
+      input.value?.blur()
+    } else store.openUrl(buildSearchUrl(useEngine, q), newTab)
   }
   if (newTab) {
     query.value = ''

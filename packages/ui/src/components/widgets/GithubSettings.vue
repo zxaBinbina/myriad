@@ -38,7 +38,7 @@ defineExpose({ value, validate })
       class="m-input"
       name="user"
       required
-      pattern="[a-zA-Z0-9][a-zA-Z0-9-]{0,38}"
+      pattern="[a-zA-Z0-9](?:[a-zA-Z0-9]|-){0,38}"
       autocapitalize="none"
       :spellcheck="false"
     />
@@ -48,7 +48,7 @@ defineExpose({ value, validate })
       v-model="config.org"
       class="m-input"
       name="org"
-      pattern="[a-zA-Z0-9][a-zA-Z0-9-]{0,38}"
+      pattern="[a-zA-Z0-9](?:[a-zA-Z0-9]|-){0,38}"
       autocapitalize="none"
       :spellcheck="false"
     />

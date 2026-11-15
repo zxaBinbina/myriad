@@ -75,6 +75,7 @@ export interface FolderItem {
 }
 
 export type WidgetKind =
+  | 'feeds'
   | 'calendar'
   | 'analogClock'
   | 'weather'
@@ -202,6 +203,11 @@ export interface CustomEngine {
 }
 
 export interface SearchSettings {
+  aggregate: {
+    enabled: boolean
+    engines: string[]
+    routes: Record<string, import('./search').SearchRoute>
+  }
   defaultEngine: string
   engines: EngineSetting[]
   custom: CustomEngine[]

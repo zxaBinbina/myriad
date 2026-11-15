@@ -35,6 +35,11 @@ export interface MyriadPlatform {
   grabFocus?: () => void
   /** 页面是否由 grabFocus 重新加载而来 */
   focusRequested?: boolean
+  preview?: { prepare(url: string, origins: string[]): Promise<PreviewSession | null> }
+}
+export interface PreviewSession {
+  close(): Promise<void>
+  scroll(enabled: boolean): Promise<void>
 }
 
 export interface ReminderJob {

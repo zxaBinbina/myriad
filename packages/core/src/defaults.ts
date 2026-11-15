@@ -44,6 +44,11 @@ export function defaultSettings(): MyriadSettings {
     dock: { visibility: 'always', hover: 'magnify' },
     openIn: 'current',
     search: {
+      aggregate: {
+        enabled: false,
+        engines: ['google', 'bing', 'github', 'npm', 'mdn'],
+        routes: {},
+      },
       defaultEngine: 'google',
       engines: defaultEngineSettings(),
       custom: [],
@@ -142,7 +147,12 @@ const PRESET: PresetGroup[] = [
     name: '常用',
     nameEn: 'Home',
     icon: 'star',
-    widgets: [{ type: 'widget', kind: 'calendar', size: '2x2', config: {} }],
+    widgets: [
+      { type: 'widget', kind: 'calendar', size: '2x2', config: {} },
+      { type: 'widget', kind: 'weather', size: '2x2', config: {} },
+      { type: 'widget', kind: 'quote', size: '2x2', config: {} },
+      { type: 'widget', kind: 'feeds', size: '2x4', config: {} },
+    ],
     sites: [
       ['Google', 'https://www.google.com'],
       ['百度', 'https://www.baidu.com'],

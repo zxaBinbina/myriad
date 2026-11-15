@@ -54,6 +54,11 @@ export interface ApiFeatures {
   githubPrivate?: boolean
   credentials?: boolean
   credentialRevision?: string
+  feeds?: boolean
+  reader?: boolean
+  summary?: boolean
+  search?: boolean
+  searchWeb?: string[]
 }
 
 export interface BackupInfo {
@@ -195,6 +200,10 @@ export function createApi(config: ApiConfig, fetcher: typeof fetch = (...a) => f
     geo: () => json<GeoInfo>('/v1/geo', {}, false),
     weather: (query: URLSearchParams, signal: AbortSignal) =>
       json<unknown>(`/v1/me/weather?${query}`, { signal }),
+    search: (query: URLSearchParams, signal: AbortSignal) =>
+      json<import('../search').SearchPage>(`/v1/me/search?${query}`, { signal }),
+    summary: (url: string, lang: string, signal: AbortSignal) =>
+      json<{ summary: string }>('/v1/me/summary', { ...send('POST', { url, lang }), signal }),
     github: (query: URLSearchParams, signal: AbortSignal) =>
       json<unknown>(`/v1/me/github?${query}`, { signal }),
     translate: (

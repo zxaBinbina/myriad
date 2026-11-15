@@ -6,7 +6,7 @@
 
 万象是一个替换浏览器新标签页的扩展：分组网格、文件夹、Dock、多引擎搜索、时钟与农历，配色和交互沿用 [zxabinbina.cc.cd](https://zxabinbina.cc.cd) 的设计语言。数据默认只存在本机，可随时导出为 JSON；也可以连接自己部署的后端 [myriad_api](https://github.com/zxaBinbina/myriad_api) 在多台设备之间同步。
 
-> **M3 · 小组件开发完成，等待试用反馈。** 天气、每日一言、倒数日、网站监控、Minecraft、汇率、待办与便签、翻译和 GitHub 均已实现；和风天气、GitHub 等服务密钥可以在扩展或小组件设置中填写并加密上传保存。
+> **M4 · 信息流与聚合搜索已完成试用反馈修正。** 新增 12 源热榜、RSS / Atom、悬浮预览、AI 摘要与聚合搜索结果页；Google CSE / Brave 可通过服务密钥页加密配置。
 
 ## 功能
 
@@ -109,7 +109,25 @@ Chrome 不允许把 `geolocation` 声明为可选权限，因此它与 `storage`
 
 在搜索设置中启用「翻译」（保留旧 ID `google-translate`），点选或输入 `tr` 前缀会把原文送到已有组件，必要时切换分组 / 打开极简仪表盘；没有组件时在当前分组创建一个。不会自动提交翻译，也不会跳转第三方翻译页。
 
-和风天气、预警与 GitHub 私有数据已通过模拟测试；本工作区尚未配置真实密钥。可以直接在「设置 → 服务密钥」或小组件设置中填写。配置方式见 [后端说明](https://github.com/zxaBinbina/myriad_api#readme)，完整 M3 进度见 [项目进度](AGENTS.md)。热榜 / RSS、聚合搜索进入 M4。
+和风天气、预警与 GitHub 私有数据已通过模拟测试；本工作区尚未配置真实密钥。可以直接在「设置 → 服务密钥」或小组件设置中填写。配置方式见 [后端说明](https://github.com/zxaBinbina/myriad_api#readme)，开发进度见 [项目进度](AGENTS.md)。
+
+### 热榜 / RSS 与预览
+
+通过「添加小组件 → 热榜 / RSS」加入当前分组，已有数据不会自动插入组件。组件设置可选热榜、RSS 或收藏模式。热榜支持知乎、微博、B 站、V2EX、Hacker News、GitHub Trending、少数派、IT 之家、掘金、36 氪、百度和抖音，可逐个开关；RSS 支持普通 RSS / Atom 地址和 RSSHub 路由，实例地址可改。
+
+默认每天更新一次，可设本地刷新时间；到时间不主动抓取，等组件可见时才获取。刷新按钮也遵守当日缓存，多实例共享缓存，来源失败时尽量保留旧快照并标示过期。订阅、可选已读标记及收藏参与同步和 JSON 导出，抓取快照只存缓存。当前 Worker 线上有 10 个热榜源成功；B 站机房请求受限，可尝试扩展本机回退；抖音当前也无法稳定直连，获取失败会明确提示。
+
+每个组件独立记住所选热榜平台 / RSS 订阅。悬浮文章条目约半秒后显示阅读气泡，自动缓慢滚动，移入气泡暂停；视频平台条目不启用悬浮阅读。点击条目仍打开原悬浮预览弹窗，再点正文、预览网页或原文链接跳转原文。阅读模式按顺序显示图片、视频和音频；媒体无法加载 / 播放或第三方播放器无法嵌入时显示占位符。媒体控件独立操作，播放时暂停滚动。默认缓慢滚动，鼠标停留时暂停，也可手动暂停；减少动态效果时停止自动滚动。悬浮阅读、点击预览、AI 摘要、已读、收藏都可单独关闭。
+
+扩展首次预览申请可选 `declarativeNetRequestWithHostAccess`、`scripting`、`webNavigation` 和该网站主机权限。Chrome 不允许把 `declarativeNetRequest` 本身声明为可选。临时会话规则只针对当前标签页、扩展发起的精确 URL 和 iframe 响应移除 X-Frame-Options / CSP；DNR 无法仅删 CSP 的 `frame-ancestors`，因此该响应移除整个 CSP，iframe 保留 sandbox 限制。webNavigation 仅用于定位当前扩展标签页的预览 iframe，脚本只注入该子 frame，不读其他标签页。关闭预览、隐藏页面或离开标签页会清理规则；规则安装停滞五秒后回退阅读模式。如果首次授权后仍停留在阅读模式，可重新加载扩展再试。无法嵌入或拒绝权限时使用阅读模式；正文提取失败仍保留标题、摘要与原文链接。
+
+AI 摘要只在打开预览后通过已鉴权 Worker 生成，按公开正文与语言缓存，同一内容无需反复推理。需要 Worker 的可选 AI 绑定；没连接、没绑定或推理失败时预览仍可使用。网站宿主使用 Worker 阅读模式，不申请扩展权限。
+
+### 聚合搜索
+
+「设置 → 搜索 → 聚合搜索」默认关闭，开启后选择参与的引擎及每个引擎的获取方式。结果在自己的页面按瀑布流展示，合并重复 URL 的来源，可按引擎筛选，向下滚动继续加载，也保留前往各引擎的链接。当前页打开时，每条结果标题右端提供新标签页图标。返回按钮回到原来的分组；地址中的 `#search` 可恢复结果页。
+
+扩展可使用本机网络与 Cookie 解析 Google / Bing / 百度 / DDG，自动模式失败后尝试私有 Worker 的搜索 API。Google CSE 的 API Key / Search Engine ID 与 Brave Key 在「设置 → 服务密钥」填写并加密保存；Key 可选，尚未配置时 API 回退明确显示不可用，不伪造结果。Google CSE 仅适用于已有服务资格的账号，免费额度与政策以供应商为准。GitHub、npm、MDN、Wikipedia / Minecraft Wiki、Stack Overflow 和 Hacker News 使用官方公开 API，可选直连 / Worker；网站访客的通用搜索仅提供跳转，公开 Worker 不调用用户 Key。引擎反爬、Cookie 策略或页面改版可能导致本机解析失败。
 
 ### 新标签页的焦点
 
@@ -141,11 +159,15 @@ python3 scripts/check-memo.py        # 共享清单、重复任务、提醒、Ma
 python3 scripts/check-translation.py # 多服务 / 大模型、密钥与导出隔离、搜索导流、IME 与取消
 python3 scripts/check-credentials.py # 隔离本地 Worker：密文上传、保存 / 删除、失败重试、组件转发
 python3 scripts/check-m3.py          # GitHub 各视图、私有缓存隔离、农历 / 假期、和风预警、取消与深浅主题
+python3 scripts/check-m4-feedback.py # 平台选择恢复、悬浮阅读、真实媒体播放 / 占位符、原生 v 校验；需 ffmpeg
+python3 scripts/check-m4.py          # 信息流缓存、RSS、阅读预览 / AI、聚合搜索去重 / 筛选 / 继续加载 / 取消
 
 python3 -m playwright install chromium
 python3 scripts/check-extension.py   # 在真实扩展环境加载新标签页
 python3 scripts/check-sync.py        # 两个隔离页面联调本地 Worker，见脚本说明
 ```
+
+M4 脚本也可在构建后离线运行：`npm run build:web`，然后 `MYRIAD_OFFLINE=1 python3 scripts/check-m4.py`。它拦截本地构建文件及固定上游数据，20 项交互检查不依赖预览服务器、不使用用户同步文档或真实密钥。反馈脚本 `python3 scripts/check-m4-feedback.py` 同样离线，另有 23 项检查。
 
 ### 与后端本地联调
 

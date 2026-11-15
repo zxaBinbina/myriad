@@ -83,6 +83,12 @@ export function createStore(platform: MyriadPlatform) {
     openFolder: null as Id | null,
     editor: null as EditorState | null,
     widgetEditor: null as Id | null,
+    search: null as { q: string; engine: string; nonce: number } | null,
+    feedPreview: null as {
+      itemId: string
+      entry: import('@myriad/core').FeedEntry
+      ready?: Promise<import('../platform').PreviewSession | null>
+    } | null,
     translationInput: null as { itemId: Id; text: string; nonce: number } | null,
     bookmarkImportOpen: false,
     contextMenu: null as { x: number; y: number; items: ContextMenuItem[] } | null,
@@ -195,14 +201,14 @@ export function createStore(platform: MyriadPlatform) {
   const lastBody: Record<string, string> = {}
   const timers: Record<string, ReturnType<typeof setTimeout>> = {}
   /** 写入存储前的回调（同步模块在这里把修改写进 Yjs 文档并广播给其他标签页） */
-  const persistHooks: ((key: string) => void)[] = []
-  function onPersist(fn: (key: string) => void) {
+  const persistHooks: ((key: string) => void | Promise<void>)[] = []
+  function onPersist(fn: (key: string) => void | Promise<void>) {
     persistHooks.push(fn)
   }
 
   function persist(key: string, target: { updatedAt: number } | LocalState) {
     clearTimeout(timers[key])
-    timers[key] = setTimeout(() => {
+    timers[key] = setTimeout(async () => {
       const raw = toRaw(target) as { updatedAt?: number }
       const body = 'updatedAt' in raw ? bodyOf(raw as { updatedAt: number }) : JSON.stringify(raw)
       if (body === lastBody[key]) return
@@ -211,7 +217,7 @@ export function createStore(platform: MyriadPlatform) {
       if ('updatedAt' in raw) raw.updatedAt = Date.now()
       for (const fn of persistHooks) {
         try {
-          fn(key)
+          await fn(key)
         } catch (e) {
           // 同步出错不能影响本机保存
           console.error(e)

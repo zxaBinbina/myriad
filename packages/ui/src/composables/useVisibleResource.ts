@@ -19,6 +19,7 @@ export function useVisibleResource<T>(
     retry?: boolean
     revalidateOnVisible?: boolean
     persist?: boolean
+    cacheKey?: Ref<string>
   } = {},
 ) {
   const store = useStore()
@@ -43,7 +44,7 @@ export function useVisibleResource<T>(
     stop()
     if (!active.value || !key.value) return
     const token = version
-    const cacheKey = `myriad.cache.widget.${key.value}`
+    const cacheKey = `myriad.cache.widget.${options.cacheKey?.value ?? key.value}`
     const ctrl = new AbortController()
     controller = ctrl
     error.value = ''

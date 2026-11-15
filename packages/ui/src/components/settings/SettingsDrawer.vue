@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   BackupError,
+  SEARCH_PROVIDERS,
   browserTimeZone,
   type ComboKey,
   comboFromEvent,
@@ -818,6 +819,34 @@ function close() {
 
           <!-- 搜索 -->
           <section v-else-if="section === 'search'">
+            <SettingRow :label="m.aggregate.title" :desc="m.aggregate.settingHint"
+              ><MSwitch v-model="s.search.aggregate.enabled" :label="m.aggregate.title"
+            /></SettingRow>
+            <SettingRow v-if="s.search.aggregate.enabled" :label="m.aggregate.engines" stacked>
+              <div class="m-aggregate-settings">
+                <label v-for="id in SEARCH_PROVIDERS" :key="id" class="m-aggregate-settings__row"
+                  ><input
+                    v-model="s.search.aggregate.engines"
+                    type="checkbox"
+                    :value="id"
+                  /><span>{{ engines.find((e) => e.id === id)?.name || 'Hacker News' }}</span
+                  ><select
+                    :value="s.search.aggregate.routes[id] || 'auto'"
+                    class="m-select"
+                    :aria-label="`${id} ${m.aggregate.route}`"
+                    @change="
+                      s.search.aggregate.routes[id] = ($event.target as HTMLSelectElement)
+                        .value as any
+                    "
+                  >
+                    <option value="auto">{{ m.common.auto }}</option>
+                    <option value="direct">{{ m.feeds.direct }}</option>
+                    <option value="worker">{{ m.feeds.worker }}</option>
+                    <option value="link">{{ m.aggregate.link }}</option>
+                  </select></label
+                >
+              </div>
+            </SettingRow>
             <SettingRow :label="m.settings.search.defaultEngine">
               <select v-model="s.search.defaultEngine" class="m-select m-select--auto">
                 <option v-for="e in engines.filter((x) => x.enabled)" :key="e.id" :value="e.id">
@@ -1104,6 +1133,8 @@ function close() {
                 'tencent',
                 'microsoft',
                 'openai',
+                'brave',
+                'google',
               ]"
             />
           </section>
@@ -1398,6 +1429,23 @@ function close() {
 </template>
 
 <style scoped>
+.m-aggregate-settings {
+  display: grid;
+  gap: 10px;
+}
+.m-aggregate-settings__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.m-aggregate-settings__row span {
+  flex: 1;
+}
+.m-aggregate-settings__row .m-select {
+  width: auto;
+  max-width: 150px;
+}
 .m-drawer-layer {
   position: fixed;
   inset: 0;

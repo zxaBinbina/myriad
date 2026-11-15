@@ -11,6 +11,13 @@ export interface WidgetDefinition {
 
 /** 小组件注册表。M3 起在这里添加天气、翻译、待办等组件。 */
 export const WIDGETS: Record<WidgetKind, WidgetDefinition> = {
+  feeds: {
+    icon: 'rss',
+    sizes: ['2x2', '2x4', '4x2', '4x4'],
+    defaultSize: '2x4',
+    settings: true,
+    component: defineAsyncComponent(() => import('./FeedWidget.vue')),
+  },
   github: {
     icon: 'github',
     sizes: ['2x2', '4x2', '2x4', '4x4'],

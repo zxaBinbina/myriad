@@ -22,6 +22,15 @@ export interface BuiltinEngine {
 /** 内置搜索引擎。顺序即默认显示顺序。 */
 export const BUILTIN_ENGINES: BuiltinEngine[] = [
   {
+    id: 'hackernews',
+    name: 'Hacker News',
+    url: 'https://hn.algolia.com/?q=%s',
+    home: 'https://news.ycombinator.com',
+    prefix: 'hn',
+    enabled: false,
+    category: 'site',
+  },
+  {
     id: 'google',
     name: 'Google',
     url: 'https://www.google.com/search?q=%s',

@@ -46,7 +46,9 @@ function onClick(e: MouseEvent) {
       <header class="m-dialog__head">
         <div>
           <p v-if="eyebrow" class="m-eyebrow">{{ eyebrow }}</p>
-          <h2 class="m-dialog__title">{{ title }}</h2>
+          <h2 class="m-dialog__title">
+            <slot name="title">{{ title }}</slot>
+          </h2>
         </div>
         <button
           type="button"
@@ -79,11 +81,16 @@ function onClick(e: MouseEvent) {
   overflow: visible;
 }
 .m-dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
   background: rgb(5 6 12 / 45%);
   backdrop-filter: blur(4px);
 }
 .m-dialog[open] {
   animation: m-dialog-in 0.32s var(--motion-ease);
+}
+.m-dialog:modal {
+  overscroll-behavior: contain;
 }
 .m-dialog[open]::backdrop {
   animation: m-fade-in 0.24s ease;

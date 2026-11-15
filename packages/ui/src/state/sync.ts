@@ -141,7 +141,12 @@ export function createSyncController(store: MyriadStore) {
     }
   }
 
-  store.onPersist((key) => flushLocal(key))
+  store.onPersist(async (key) => {
+    flushLocal(key)
+    // Keep the CRDT snapshot at least as current as the visible data snapshot.
+    // Otherwise a reload in the engine's debounce window restores older widget choices.
+    if (engine && !holding) await engine.save()
+  })
 
   /* ---------------- 文档 → store ---------------- */
 

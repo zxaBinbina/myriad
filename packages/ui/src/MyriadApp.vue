@@ -15,6 +15,9 @@ import ItemIcon from './components/ItemIcon.vue'
 import Onboarding from './components/Onboarding.vue'
 import Overlays from './components/Overlays.vue'
 import SearchBox from './components/SearchBox.vue'
+import SearchResults from './components/SearchResults.vue'
+import FeedPreview from './components/FeedPreview.vue'
+import { searchFromLocation } from './state/search'
 import SettingsDrawer from './components/settings/SettingsDrawer.vue'
 import ShortcutEditor from './components/ShortcutEditor.vue'
 import SyncDialogs from './components/SyncDialogs.vue'
@@ -107,6 +110,7 @@ const modalOpen = computed(
     !!(
       store.ui.editor ||
       store.ui.widgetEditor ||
+      store.ui.feedPreview ||
       memo.editing.value ||
       memo.security.value ||
       store.ui.confirm ||
@@ -173,14 +177,22 @@ function onKeydown(e: KeyboardEvent) {
 onMounted(async () => {
   addEventListener('keydown', onKeydown)
   await store.load()
+  searchFromLocation(store)
+  addEventListener('hashchange', routeChanged)
+  addEventListener('popstate', routeChanged)
   if (props.platform.focusRequested) search.value?.focus()
   void sync.init()
 })
 onBeforeUnmount(() => {
+  removeEventListener('hashchange', routeChanged)
+  removeEventListener('popstate', routeChanged)
   memo.dispose()
   removeEventListener('keydown', onKeydown)
   clearTimeout(transitionTimer)
 })
+function routeChanged() {
+  searchFromLocation(store)
+}
 
 const settingsHint = computed(() => {
   const k = s.shortcuts.bindings.openSettings[0]
@@ -252,16 +264,17 @@ function onRootContextMenu(e: MouseEvent) {
       </button>
     </div>
 
-    <GroupTabs v-if="side && store.loaded.value" />
+    <GroupTabs v-if="side && store.loaded.value && !store.ui.search" />
 
     <div class="m-shell">
       <header class="m-hero">
         <Clock @secret="emit('secret')" />
         <SearchBox ref="search" />
       </header>
-      <GroupTabs v-if="!side && store.loaded.value" class="m-shell__tabs" />
+      <GroupTabs v-if="!side && store.loaded.value && !store.ui.search" class="m-shell__tabs" />
       <main class="m-main" :aria-label="store.activeGroup.value.name">
-        <GroupPager v-if="store.loaded.value" />
+        <SearchResults v-if="store.loaded.value && store.ui.search" />
+        <GroupPager v-else-if="store.loaded.value" />
       </main>
     </div>
 
@@ -269,6 +282,7 @@ function onRootContextMenu(e: MouseEvent) {
     <FolderPopup />
     <ShortcutEditor />
     <WidgetEditor />
+    <FeedPreview />
     <MemoDialogs />
     <BookmarkImport v-if="store.platform.bookmarks" />
     <Onboarding />

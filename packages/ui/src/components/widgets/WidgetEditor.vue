@@ -24,6 +24,7 @@ import AdvancedWidgetSettings from './AdvancedWidgetSettings.vue'
 import MemoSettings from './MemoSettings.vue'
 import TranslationSettings from './TranslationSettings.vue'
 import GithubSettings from './GithubSettings.vue'
+import FeedSettings from './FeedSettings.vue'
 import { useMemo } from '../../state/memo'
 import ServiceCredentials from '../settings/ServiceCredentials.vue'
 
@@ -45,6 +46,8 @@ const githubSettings = ref<InstanceType<typeof GithubSettings> | null>(null)
 const githubFormId = useId(),
   countdownFormId = useId(),
   fieldId = useId()
+const feedSettings = ref<InstanceType<typeof FeedSettings> | null>(null),
+  feedFormId = useId()
 const memo = useMemo()
 const serviceCredentials = ref<InstanceType<typeof ServiceCredentials> | null>(null)
 const reminderAllowed = ref(false)
@@ -87,6 +90,13 @@ function close() {
 }
 async function save() {
   if (!item.value) return
+  if (item.value.kind === 'feeds' && feedSettings.value) {
+    error.value = feedSettings.value.validate()
+    if (error.value) return
+    item.value.config = feedSettings.value.value() as unknown as Record<string, unknown>
+    close()
+    return
+  }
   if (serviceCredentials.value) {
     if (busy.value) return
     busy.value = true
@@ -288,6 +298,14 @@ onBeforeUnmount(() => {
     @close="close"
   >
     <div v-if="item" class="m-widget-editor">
+      <FeedSettings
+        v-if="item.kind === 'feeds'"
+        :key="item.id"
+        ref="feedSettings"
+        :item="item"
+        :form-id="feedFormId"
+        @submit="save"
+      />
       <ServiceCredentials
         v-if="item.kind === 'weather' || item.kind === 'github'"
         :key="`credentials-${item.id}`"
@@ -626,18 +644,23 @@ onBeforeUnmount(() => {
       ><button type="button" class="m-btn" @click="close">{{ m.common.cancel }}</button
       ><button
         :type="
-          item?.kind === 'translation' || item?.kind === 'github' || item?.kind === 'countdown'
+          item?.kind === 'translation' ||
+          item?.kind === 'github' ||
+          item?.kind === 'countdown' ||
+          item?.kind === 'feeds'
             ? 'submit'
             : 'button'
         "
         :form="
-          item?.kind === 'translation'
-            ? translationFormId
-            : item?.kind === 'github'
-              ? githubFormId
-              : item?.kind === 'countdown'
-                ? countdownFormId
-                : undefined
+          item?.kind === 'feeds'
+            ? feedFormId
+            : item?.kind === 'translation'
+              ? translationFormId
+              : item?.kind === 'github'
+                ? githubFormId
+                : item?.kind === 'countdown'
+                  ? countdownFormId
+                  : undefined
         "
         class="m-btn m-btn--primary"
         :disabled="busy"
@@ -645,6 +668,7 @@ onBeforeUnmount(() => {
           item?.kind !== 'translation' &&
           item?.kind !== 'github' &&
           item?.kind !== 'countdown' &&
+          item?.kind !== 'feeds' &&
           save()
         "
       >

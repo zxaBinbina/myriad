@@ -9,7 +9,14 @@ export default defineConfig({
     description: '__MSG_extDescription__',
     default_locale: 'zh_CN',
     permissions: ['storage', 'geolocation'],
-    optional_permissions: ['bookmarks', 'notifications', 'alarms'],
+    optional_permissions: [
+      'bookmarks',
+      'notifications',
+      'alarms',
+      'declarativeNetRequestWithHostAccess',
+      'scripting',
+      'webNavigation',
+    ],
     // 同步服务（myriad_api）地址可自定义：连接时只申请用户填写的那个来源
     optional_host_permissions: ['https://*/*', 'http://localhost/*', 'http://127.0.0.1/*'],
     // 搜索联想与每日壁纸接口不支持跨域，需要主机权限

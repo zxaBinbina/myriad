@@ -1,6 +1,7 @@
 import type { BookmarkNode, StorageAdapter } from '@myriad/core'
 import type { MyriadPlatform } from '@myriad/ui'
 import { browser } from 'wxt/browser'
+import { preparePreview } from '../../utils/preview'
 
 /** chrome.storage.local 存储；其他标签页的修改通过 onChanged 通知 */
 function createExtensionStorage(areaName: 'local' | 'sync' = 'local'): StorageAdapter {
@@ -35,6 +36,7 @@ export function createExtensionPlatform(): MyriadPlatform {
     kind: 'extension',
     storage: createExtensionStorage(),
     secrets: createExtensionStorage('sync'),
+    preview: { prepare: preparePreview },
     reminders: {
       has: () => browser.permissions.contains({ permissions: ['notifications', 'alarms'] }),
       request: () => browser.permissions.request({ permissions: ['notifications', 'alarms'] }),
