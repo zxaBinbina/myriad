@@ -24,9 +24,11 @@ import {
   translationOrigins,
 } from '../../state/translation'
 import WidgetHeader from './WidgetHeader.vue'
+import { useSync } from '../../state/sync'
 
 const props = defineProps<{ item: WidgetItem }>()
 const store = useStore()
+const sync = useSync()
 const { m, t } = useI18n()
 const id = useId()
 const config = computed(() => translationConfig(props.item.config))
@@ -59,6 +61,16 @@ function invalidate() {
   error.value = ''
 }
 watch([text, source, target], invalidate)
+watch(
+  () => [
+    sync.state.features?.credentialRevision,
+    store.local.sync.apiBase,
+    store.local.sync.token,
+    store.local.sync.clientSecret,
+  ],
+  invalidate,
+  { flush: 'sync' },
+)
 watch(
   config,
   () => {

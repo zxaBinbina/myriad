@@ -14,9 +14,11 @@ import {
 } from '../../state/widgetRequests'
 import WeatherIcon from './WeatherIcon.vue'
 import WidgetHeader from './WidgetHeader.vue'
+import { useSync } from '../../state/sync'
 
 const props = defineProps<{ item: WidgetItem }>()
 const store = useStore()
+const sync = useSync()
 const { m, t } = useI18n()
 const config = computed(() => weatherConfig(props.item.config))
 const cityIndex = computed(() =>
@@ -25,7 +27,7 @@ const cityIndex = computed(() =>
 const city = computed(() => config.value.cities[cityIndex.value])
 const key = computed(() =>
   city.value
-    ? `weather:v2:${widgetBase(store, config.value.route)}:${city.value.latitude}:${city.value.longitude}:${config.value.airQuality}:${config.value.provider}:${config.value.warnings}:${store.lang.value}`
+    ? `weather:v3:${sync.state.features?.credentialRevision ?? ''}:${widgetBase(store, config.value.route)}:${city.value.latitude}:${city.value.longitude}:${config.value.airQuality}:${config.value.provider}:${config.value.warnings}:${store.lang.value}`
     : null,
 )
 const { root, data, loading, error, stale, reload } = useVisibleResource(

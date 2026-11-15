@@ -43,7 +43,8 @@ export async function loadTranslationCredentials(
 export function translationOrigins(store: MyriadStore, config: TranslationConfig): string[] {
   const providers: TranslationProvider[] = config.mode === 'llm' ? ['openai'] : config.services
   return providers.flatMap((provider) => {
-    if (provider !== 'worker') return [translationOrigin(provider, config)]
+    if (provider !== 'worker' && config.credentialLocation !== 'worker')
+      return [translationOrigin(provider, config)]
     const base = widgetBase(store, 'auto')
     return base ? [new URL(base).origin] : []
   })
@@ -60,10 +61,10 @@ export async function runTranslation(
   const timed = AbortSignal.any([signal, AbortSignal.timeout(30000)])
   timed.throwIfAborted()
   if (!input.text.trim() || input.text.length > 2000) throw new TranslationError('length')
-  if (provider === 'worker') {
+  if (provider === 'worker' || config.credentialLocation === 'worker') {
     const base = widgetBase(store, 'auto')
     if (!base) throw new WorkerNotConfigured()
-    if (config.workerProvider === 'ai' && input.source === 'auto')
+    if (provider === 'worker' && config.workerProvider === 'ai' && input.source === 'auto')
       throw new TranslationError('source')
     if (store.platform.origins && !(await store.platform.origins.has(new URL(base).origin)))
       throw new PermissionRequired()
@@ -75,7 +76,10 @@ export async function runTranslation(
       clientId: cfg.authMode === 'access' ? cfg.clientId.trim() : undefined,
       clientSecret: cfg.authMode === 'access' ? cfg.clientSecret.trim() : undefined,
     })
-    return parseTranslation('worker', await api.translate(input, config.workerProvider, timed))
+    return parseTranslation(
+      'worker',
+      await api.translate(input, provider === 'worker' ? config.workerProvider : provider, timed),
+    )
   }
   const credentials = await loadTranslationCredentials(store, itemId)
   timed.throwIfAborted()

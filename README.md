@@ -6,7 +6,7 @@
 
 万象是一个替换浏览器新标签页的扩展：分组网格、文件夹、Dock、多引擎搜索、时钟与农历，配色和交互沿用 [zxabinbina.cc.cd](https://zxabinbina.cc.cd) 的设计语言。数据默认只存在本机，可随时导出为 JSON；也可以连接自己部署的后端 [myriad_api](https://github.com/zxaBinbina/myriad_api) 在多台设备之间同步。
 
-> **M3 · 小组件开发完成，等待试用反馈。** 天气、每日一言、倒数日、网站监控、Minecraft、汇率、待办与便签、翻译和 GitHub 均已实现；和风天气与 GitHub 私有数据需要在 Worker 配置自己的密钥。
+> **M3 · 小组件开发完成，等待试用反馈。** 天气、每日一言、倒数日、网站监控、Minecraft、汇率、待办与便签、翻译和 GitHub 均已实现；和风天气、GitHub 等服务密钥可以在扩展或小组件设置中填写并加密上传保存。
 
 ## 功能
 
@@ -75,7 +75,7 @@ Chrome 不允许把 `geolocation` 声明为可选权限，因此它与 `storage`
   - 人数曲线只读取已配置的历史接口，未配置则隐藏；Worker 不记录历史。可添加复制地址、官网等操作，默认没有快捷操作。
 - **汇率**：基准币种按浏览器时区推断，支持换算、交换币种和近 30 天走势。Frankfurter → ExchangeRate-API → Currency API 自动回退，无需 Key；主来源没有历史时每五天取样，缺少数据时隐藏走势。设置中可开启常用加密货币。数据缓存 12 小时，显示来源及其报价日期。
 - **待办与便签**：同一清单可放在多个分组，任务与 Markdown 便签共享内容。顶部右侧加号为唯一添加入口，打开表单后只填名称即可回车保存，其他选项按需填写。支持截止日期 / 时间、优先级与颜色、子任务、每日 / 每周 / 每月 / 每年重复、拖拽排序、完成折叠或归档。重复任务在完成时生成下一次，短月保留原始日号，过期完成跳过遗漏日期。任务日期使用主时钟时区，未填时间的提醒按 09:00 计算。截止任务默认显示在日历与倒数日，各组件可关闭联动。
-- **GitHub**：默认个人 `zxaBinbina` 与组织 `Youzai-World-Team`，账号可改。支持贡献热力图及逐日表格、仓库 Star / Fork / 未关闭事项、指派任务 / 审阅请求、通知、Actions、最新 Release 与关注动态。可关注最多 8 个仓库，优先展示；没有关注时 Actions / Release 取前 8 个仓库。私有内容仅通过已鉴权 Worker 使用 `GITHUB_TOKEN`，查询任务以 Token 所属账号为准；缺少 Token 时公开部分仍可用。公开 GitHub API 有匿名 IP 额度限制，耗尽时显示获取失败 / 额度提示，可选直连或稍后刷新；不会借用私有 Token 给访客请求。私有结果不写本机缓存、同步、导出或 Worker 缓存。
+- **GitHub**：默认个人 `zxaBinbina` 与组织 `Youzai-World-Team`，账号可改。支持贡献热力图及逐日表格、仓库 Star / Fork / 未关闭事项、指派任务 / 审阅请求、通知、Actions、最新 Release 与关注动态。可关注最多 8 个仓库，优先展示；没有关注时 Actions / Release 取前 8 个仓库。私有内容仅通过已鉴权 Worker 使用界面保存的 GitHub Token（也兼容 `GITHUB_TOKEN` Secret），查询任务以 Token 所属账号为准；缺少 Token 时公开部分仍可用。公开 GitHub API 有匿名 IP 额度限制，耗尽时显示获取失败 / 额度提示，可选直连或稍后刷新；不会借用私有 Token 给访客请求。私有结果不写本机缓存、同步、导出或 Worker 缓存。
 
 ### 待办提醒与加密
 
@@ -87,11 +87,19 @@ Chrome 不允许把 `geolocation` 声明为可选权限，因此它与 `storage`
 
 数据组件只在当前分组、组件处于视口内且页面在前台时加载；隐藏即取消请求、停止刷新。天气、一言、汇率与自定义 Minecraft 优先使用已配置的 Worker，也可在组件设置里改为直连；网站监控与默认悠哉世界直连现有状态服务并共享缓存。公开数据请求不携带连接令牌，断网时尽量显示本机缓存。
 
+### 服务密钥
+
+先在「设置 → 同步」通过连接令牌连接自己的 Worker，再进入「设置 → 服务密钥」，或天气 / GitHub / 翻译的小组件设置，填写对应凭据并保存。支持和风（API Host + API Key 或 Ed25519 私钥 / Key ID / 项目 ID）、GitHub Token、Unsplash Access Key、DeepL、百度 / 有道 App ID 与 Secret、腾讯 Secret ID / Key、Microsoft Key / 区域与 OpenAI 兼容完整地址 / 模型 / Key。Worker DeepL 按 Key 的 `:fx` 后缀选择 Free API。
+
+凭据在浏览器用 AES-GCM 加密后经 HTTPS 上传，Worker 再加密保存到独立 D1 表；只在鉴权调用时解密使用。界面只显示配置状态，不返回明文密钥；空白字段保留已有值，删除按钮移除该服务的保存值。所有组件共用同一服务凭据，保存后相关组件立即更新，其他标签页收到不含秘密的变更通知。普通 Yjs 同步、JSON 导出及文档备份不含凭据。原有 Worker Secrets 保留兼容，已有本机翻译密钥不会自动上传到任何 Worker。
+
+传输 / 存储密钥由高强度连接令牌的 SHA-256 经 HKDF 分别派生，AES-GCM AAD 绑定用途和服务，传输同时绑定 Worker origin。**更换连接令牌后需要重新填写第三方服务密钥**；请在供应商处保留恢复途径。此机制允许你的 Worker 解密并调用服务，与清单的端到端加密密钥分开，清单密钥仍只在设备上。
+
 ### 翻译
 
-默认使用已连接的 Worker，服务端启用可选 `AI` 绑定后使用 m2m100；默认英语 → 中文，m2m100 必须明确选择原文语言。也可选择服务端 DeepL / Microsoft（Key 放 Worker），或在组件设置中选择本机 DeepL、百度、有道、腾讯、Microsoft，并填写各自密钥；DeepL 可选 API Free / Pro，腾讯与 Microsoft 可填区域。
+默认使用已连接的 Worker，服务端启用可选 `AI` 绑定后使用 m2m100；默认英语 → 中文，m2m100 必须明确选择原文语言。DeepL、百度、有道、腾讯、Microsoft 都可在组件设置填写密钥并选择 Worker 加密保存与转发；也可选择本机保存直连。DeepL 可选 API Free / Pro，腾讯与 Microsoft 可填区域。
 
-普通服务可多选，独立显示结果和错误；大模型是单独模式，填写 OpenAI 兼容 API 根地址、模型和本机 Key。模型地址通常以 `/v1` 结尾，自动追加 `/chat/completions`。Key 绑定保存时的完整端点，导入 / 同步改变地址后不会自动把旧 Key 发给新地址，需重新打开设置检查并保存。
+普通服务可多选，独立显示结果和错误；大模型是单独模式，Worker 模式在凭据表单填写完整 OpenAI 兼容 API 地址、模型与 Key；本机模式填写 API 根地址、模型与 Key。模型地址通常以 `/v1` 结尾，自动追加 `/chat/completions`。Key 绑定保存时的完整端点，导入 / 同步改变地址后不会自动把旧 Key 发给新地址，修改地址后需重新输入 Key。
 
 点击「翻译」或按 `Ctrl / ⌘ + Enter` 才发送，普通 Enter 保留换行。最多 2000 个字符，百度与腾讯还限制为 6000 UTF-8 字节；服务支持的语言与额度以各家为准。隐藏 / 取消会中止请求和丢弃晚到的结果；Workers AI 绑定本身不提供取消推理的接口，已经开始的推理可能继续完成。
 
@@ -101,7 +109,7 @@ Chrome 不允许把 `geolocation` 声明为可选权限，因此它与 `storage`
 
 在搜索设置中启用「翻译」（保留旧 ID `google-translate`），点选或输入 `tr` 前缀会把原文送到已有组件，必要时切换分组 / 打开极简仪表盘；没有组件时在当前分组创建一个。不会自动提交翻译，也不会跳转第三方翻译页。
 
-和风天气、预警与 GitHub 私有数据已通过模拟测试；本工作区尚未配置真实密钥。配置方式见 [后端说明](https://github.com/zxaBinbina/myriad_api#readme)，完整 M3 进度见 [项目进度](AGENTS.md)。热榜 / RSS、聚合搜索进入 M4。
+和风天气、预警与 GitHub 私有数据已通过模拟测试；本工作区尚未配置真实密钥。可以直接在「设置 → 服务密钥」或小组件设置中填写。配置方式见 [后端说明](https://github.com/zxaBinbina/myriad_api#readme)，完整 M3 进度见 [项目进度](AGENTS.md)。热榜 / RSS、聚合搜索进入 M4。
 
 ### 新标签页的焦点
 
@@ -131,6 +139,7 @@ python3 scripts/check-services.py    # 状态 / Minecraft / 汇率、刷新约�
 python3 scripts/check-minecraft.py   # 仅地址查询、状态 JSON 与备选、缓存和后台取消
 python3 scripts/check-memo.py        # 共享清单、重复任务、提醒、Markdown 清理与跨设备解锁
 python3 scripts/check-translation.py # 多服务 / 大模型、密钥与导出隔离、搜索导流、IME 与取消
+python3 scripts/check-credentials.py # 隔离本地 Worker：密文上传、保存 / 删除、失败重试、组件转发
 python3 scripts/check-m3.py          # GitHub 各视图、私有缓存隔离、农历 / 假期、和风预警、取消与深浅主题
 
 python3 -m playwright install chromium

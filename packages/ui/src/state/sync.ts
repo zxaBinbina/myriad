@@ -81,6 +81,21 @@ export function createSyncController(store: MyriadStore) {
 
   const channel =
     typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('myriad-sync')
+  const credentialChannel =
+    typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('myriad-credentials')
+  async function refreshFeatures(broadcast = false) {
+    const a = api
+    if (!a || a.base !== apiBase.value) return
+    const info = await a.me()
+    if (a === api && a.base === apiBase.value) {
+      state.features = info.features
+      if (broadcast) credentialChannel?.postMessage({ changed: true })
+    }
+  }
+  if (credentialChannel)
+    credentialChannel.onmessage = () => {
+      void refreshFeatures().catch(() => undefined)
+    }
 
   const active = computed(() => state.status !== 'off' && state.status !== 'connecting')
   const apiBase = computed(() => normalizeBase(cfg().apiBase))
@@ -221,6 +236,7 @@ export function createSyncController(store: MyriadStore) {
         retryDelay = 30_000
         lastPull = Date.now()
         cfg().lastSync = lastPull
+        void refreshFeatures().catch(() => undefined)
         if (e.dirty) schedulePush()
       } catch (err) {
         if (e === engine) fail(err)
@@ -484,6 +500,7 @@ export function createSyncController(store: MyriadStore) {
     disconnect,
     requestPermission,
     syncNow,
+    refreshFeatures,
     resolveConflicts,
     /** 让「仅本机」的设置项恢复同步（以本机的值为准上传） */
     unpin(path: string) {

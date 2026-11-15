@@ -55,7 +55,7 @@ async function bingUrl(): Promise<string> {
 
 /** Unsplash 每日一图：经同步服务获取（Key 在 Worker），按日期缓存 */
 async function unsplashUrl(query = ''): Promise<string> {
-  const key = `wallpaper.unsplash.${today()}.${query}`
+  const key = `wallpaper.unsplash.${sync.apiBase.value}.${sync.state.features?.credentialRevision ?? ''}.${today()}.${query}`
   const hit = await cache.get<string>(key, 86400000)
   if (hit) return hit
   try {
@@ -107,12 +107,12 @@ let seq = 0
 let retriedAsVideo = false
 // 同步服务连上后重新解析（Unsplash、其他设备上传的壁纸需要它）
 watch(
-  [spec, () => sync.active.value],
-  async ([s], [prev, wasActive]) => {
+  [spec, () => sync.active.value, () => sync.state.features?.credentialRevision],
+  async ([s, , revision], [prev, wasActive, previousRevision]) => {
     // 只是同步状态变化、且当前来源不依赖同步时不重新加载
     if (prev === s && wasActive !== undefined && s?.source !== 'unsplash' && s?.source !== 'upload')
       return
-    if (prev === s && src.value) return
+    if (prev === s && src.value && revision === previousRevision) return
     const n = ++seq
     const old = objectUrl
     objectUrl = ''

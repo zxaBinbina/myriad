@@ -31,6 +31,7 @@ import MSeg from '../base/MSeg.vue'
 import MSwitch from '../base/MSwitch.vue'
 import MRange from './MRange.vue'
 import SettingRow from './SettingRow.vue'
+import ServiceCredentials from './ServiceCredentials.vue'
 
 const store = useStore()
 const sync = useSync()
@@ -48,6 +49,7 @@ const SECTIONS = [
   'shortcuts',
   'clock',
   'sync',
+  'credentials',
   'data',
   'about',
 ] as const
@@ -1090,6 +1092,21 @@ function close() {
           </section>
 
           <!-- 同步 -->
+          <section v-else-if="section === 'credentials'">
+            <ServiceCredentials
+              :services="[
+                'qweather',
+                'github',
+                'unsplash',
+                'deepl',
+                'baidu',
+                'youdao',
+                'tencent',
+                'microsoft',
+                'openai',
+              ]"
+            />
+          </section>
           <section v-else-if="section === 'sync'">
             <p class="m-drawer__note">{{ m.sync.intro }}</p>
             <div class="m-sync-status" :class="`is-${sync.state.status}`" role="status">

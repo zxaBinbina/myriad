@@ -5,6 +5,7 @@ import {
   TRANSLATION_SERVICES,
   type TranslationCredentials,
   type TranslationProvider,
+  type CredentialService,
 } from '@myriad/core'
 import { computed, onMounted, ref, useId } from 'vue'
 import { useI18n } from '../../i18n'
@@ -14,6 +15,7 @@ import {
   translationCredentialsKey,
   translationEndpoint,
 } from '../../state/translation'
+import ServiceCredentials from '../settings/ServiceCredentials.vue'
 
 const props = defineProps<{ initial: Record<string, unknown>; itemId: string; formId: string }>()
 const emit = defineEmits<{ save: [] }>()
@@ -25,14 +27,34 @@ const credentials = ref<TranslationCredentials>({})
 const form = ref<HTMLFormElement | null>(null)
 const loaded = ref(false)
 const showKey = ref(false)
+const serviceCredentials = ref<InstanceType<typeof ServiceCredentials> | null>(null)
 const providers = computed<TranslationProvider[]>(() =>
   config.value.mode === 'llm' ? ['openai'] : config.value.services.filter((p) => p !== 'worker'),
+)
+const workerServices = computed<CredentialService[]>(
+  () =>
+    [
+      ...new Set([
+        ...(config.value.credentialLocation === 'worker' ? providers.value : []),
+        ...(config.value.mode === 'services' &&
+        config.value.services.includes('worker') &&
+        config.value.workerProvider !== 'ai'
+          ? [config.value.workerProvider]
+          : []),
+      ]),
+    ] as CredentialService[],
 )
 onMounted(async () => {
   try {
     const saved = await loadTranslationCredentials(store, props.itemId)
     for (const provider of [...TRANSLATION_SERVICES, 'openai'] as TranslationProvider[])
       credentials.value[provider] = saved[provider] ?? { id: '', key: '' }
+    if (
+      !('credentialLocation' in props.initial) &&
+      store.local.sync.enabled &&
+      !Object.keys(saved).length
+    )
+      config.value.credentialLocation = 'worker'
     loaded.value = true
   } catch {
     store.toast(m.value.translation.storageFailed, 'error')
@@ -43,6 +65,7 @@ async function save() {
   if (!form.value?.reportValidity()) throw new Error(m.value.translation.invalidSettings)
   if (config.value.mode === 'services' && !config.value.services.length)
     throw new Error(m.value.translation.chooseService)
+  await serviceCredentials.value?.save()
   let endpoint: string | undefined
   if (config.value.mode === 'llm' || credentials.value.openai?.key) {
     try {
@@ -63,7 +86,8 @@ async function save() {
           : {}),
       }
   }
-  await store.platform.storage.set(translationCredentialsKey(props.itemId), clean)
+  if (config.value.credentialLocation === 'local')
+    await store.platform.storage.set(translationCredentialsKey(props.itemId), clean)
   return { ...translationConfig(config.value as unknown as Record<string, unknown>) }
 }
 defineExpose({ save })
@@ -79,6 +103,34 @@ defineExpose({ save })
     @submit.prevent="emit('save')"
   >
     <p class="m-translation-settings__hint">{{ m.translation.privacy }}</p>
+    <fieldset v-if="providers.length">
+      <legend>{{ m.credentials.location }}</legend>
+      <label :for="`${id}-worker-location`"
+        ><input
+          :id="`${id}-worker-location`"
+          v-model="config.credentialLocation"
+          type="radio"
+          :name="`${id}-credential-location`"
+          value="worker"
+        />{{ m.credentials.worker }}</label
+      >
+      <label :for="`${id}-local-location`"
+        ><input
+          :id="`${id}-local-location`"
+          v-model="config.credentialLocation"
+          type="radio"
+          :name="`${id}-credential-location`"
+          value="local"
+        />{{ m.credentials.local }}</label
+      >
+    </fieldset>
+    <ServiceCredentials
+      v-if="workerServices.length"
+      ref="serviceCredentials"
+      :services="workerServices"
+      embedded
+      :form-id="formId"
+    />
     <fieldset>
       <legend>{{ m.translation.mode }}</legend>
       <label :for="`${id}-services`"
@@ -142,7 +194,7 @@ defineExpose({ save })
         </option>
       </select>
     </div>
-    <template v-if="config.mode === 'llm'">
+    <template v-if="config.mode === 'llm' && config.credentialLocation === 'local'">
       <div class="m-field">
         <label :for="`${id}-base`">Base URL</label
         ><input
@@ -173,7 +225,13 @@ defineExpose({ save })
         />
       </div>
     </template>
-    <fieldset v-if="config.mode === 'services' && config.services.includes('deepl')">
+    <fieldset
+      v-if="
+        config.credentialLocation === 'local' &&
+        config.mode === 'services' &&
+        config.services.includes('deepl')
+      "
+    >
       <legend>{{ m.translation.deeplPlan }}</legend>
       <label :for="`${id}-free`"
         ><input
@@ -193,7 +251,14 @@ defineExpose({ save })
         />API Pro</label
       >
     </fieldset>
-    <div v-if="config.mode === 'services' && config.services.includes('microsoft')" class="m-field">
+    <div
+      v-if="
+        config.credentialLocation === 'local' &&
+        config.mode === 'services' &&
+        config.services.includes('microsoft')
+      "
+      class="m-field"
+    >
       <label :for="`${id}-ms-region`">{{ m.translation.region }} · Microsoft</label
       ><input
         :id="`${id}-ms-region`"
@@ -206,7 +271,14 @@ defineExpose({ save })
         :spellcheck="false"
       />
     </div>
-    <div v-if="config.mode === 'services' && config.services.includes('tencent')" class="m-field">
+    <div
+      v-if="
+        config.credentialLocation === 'local' &&
+        config.mode === 'services' &&
+        config.services.includes('tencent')
+      "
+      class="m-field"
+    >
       <label :for="`${id}-tc-region`"
         >{{ m.translation.region }} · {{ m.translation.tencent }}</label
       ><input
@@ -221,7 +293,7 @@ defineExpose({ save })
         :spellcheck="false"
       />
     </div>
-    <template v-if="loaded">
+    <template v-if="loaded && config.credentialLocation === 'local'">
       <fieldset
         v-for="provider in providers"
         :key="provider"
@@ -269,7 +341,7 @@ defineExpose({ save })
         {{ showKey ? m.translation.hideKeys : m.translation.showKeys }}
       </button>
     </template>
-    <p v-else role="status">{{ m.widget.loading }}</p>
+    <p v-else-if="!loaded" role="status">{{ m.widget.loading }}</p>
   </form>
 </template>
 

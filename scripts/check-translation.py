@@ -52,7 +52,7 @@ with sync_playwright() as p:
     check(page.evaluate('trRequests.length') == 0, '显示组件不发送翻译请求')
     widget.get_by_label('要翻译的文字', exact=True).fill('Hello world')
     widget.get_by_role('button', name='翻译', exact=True).click()
-    expect(widget).to_contain_text('请在组件设置中填写本机密钥')
+    expect(widget).to_contain_text('请在组件设置中填写密钥')
     check(page.evaluate('trRequests.length') == 0, '缺少密钥时不访问上游')
 
     widget.get_by_role('button', name='组件设置', exact=True).click()
@@ -129,7 +129,7 @@ with sync_playwright() as p:
     expect(widget).to_be_visible()
     widget.get_by_label('要翻译的文字', exact=True).fill('Endpoint test')
     widget.get_by_role('button', name='翻译', exact=True).click()
-    expect(widget).to_contain_text('请在组件设置中填写本机密钥')
+    expect(widget).to_contain_text('请在组件设置中填写密钥')
     check(page.evaluate('trRequests.length') == 0, '地址改变后不把原密钥发给其他模型服务')
 
     # Search creates no duplicate widget and retains no translation text in search history.

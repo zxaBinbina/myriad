@@ -1,6 +1,19 @@
 import type { ExchangeRequest, ExchangeResponse, SyncTransport } from './engine'
 import { fromBase64, toBase64 } from './engine'
-import type { TranslationInput, TranslationResult, WorkerTranslator } from '../widgets/translation'
+import type {
+  TranslationInput,
+  TranslationResult,
+  WorkerTranslator,
+  TranslationConfig,
+} from '../widgets/translation'
+import {
+  credentialContext,
+  credentialTokenHash,
+  sealCredential,
+  type CredentialChange,
+  type CredentialService,
+  type CredentialsStatus,
+} from '../credentials'
 
 /** myriad_api 的连接信息 */
 export interface ApiConfig {
@@ -14,7 +27,7 @@ export interface ApiConfig {
 }
 
 export type ApiErrorCode =
-  'network' | 'auth' | 'forbidden' | 'disabled' | 'not-found' | 'too-large' | 'server'
+  'network' | 'auth' | 'forbidden' | 'disabled' | 'not-found' | 'too-large' | 'server' | 'conflict'
 
 export class ApiError extends Error {
   constructor(
@@ -39,6 +52,8 @@ export interface ApiFeatures {
   qweather?: boolean
   github?: boolean
   githubPrivate?: boolean
+  credentials?: boolean
+  credentialRevision?: string
 }
 
 export interface BackupInfo {
@@ -126,6 +141,7 @@ export function createApi(config: ApiConfig, fetcher: typeof fetch = (...a) => f
       throw new ApiError(isJson ? 'forbidden' : 'auth', 403)
     }
     if (res.status === 404) throw new ApiError('not-found', 404)
+    if (res.status === 409) throw new ApiError('conflict', 409)
     if (res.status === 413) throw new ApiError('too-large', 413)
     if (res.status === 501 || res.status === 503) throw new ApiError('disabled', res.status)
     throw new ApiError('server', res.status)
@@ -160,14 +176,35 @@ export function createApi(config: ApiConfig, fetcher: typeof fetch = (...a) => f
     health: () =>
       json<{ ok: boolean; version: string; features: ApiFeatures }>('/v1/health', {}, false),
     me: () => json<{ identity: string; version: string; features: ApiFeatures }>('/v1/me'),
+    credentials: () => json<CredentialsStatus>('/v1/me/credentials'),
+    async saveCredential(service: CredentialService, change: CredentialChange) {
+      if (!config.token) throw new ApiError('disabled', 501)
+      const origin = new URL(base).origin
+      if (
+        !origin.startsWith('https:') &&
+        !['localhost', '127.0.0.1'].includes(new URL(base).hostname)
+      )
+        throw new ApiError('auth')
+      const envelope = await sealCredential(
+        await credentialTokenHash(config.token),
+        credentialContext('transport', service, origin),
+        change,
+      )
+      return json<CredentialsStatus>(`/v1/me/credentials/${service}`, send('PUT', envelope))
+    },
     geo: () => json<GeoInfo>('/v1/geo', {}, false),
     weather: (query: URLSearchParams, signal: AbortSignal) =>
       json<unknown>(`/v1/me/weather?${query}`, { signal }),
     github: (query: URLSearchParams, signal: AbortSignal) =>
       json<unknown>(`/v1/me/github?${query}`, { signal }),
-    translate: (input: TranslationInput, provider: WorkerTranslator, signal: AbortSignal) =>
+    translate: (
+      input: TranslationInput,
+      provider: WorkerTranslator,
+      signal: AbortSignal,
+      settings?: TranslationConfig,
+    ) =>
       json<TranslationResult>('/v1/me/translate', {
-        ...send('POST', { ...input, provider }),
+        ...send('POST', { ...input, provider, settings }),
         signal,
       }),
     listBackups: () => json<{ backups: BackupInfo[]; config: BackupConfig }>('/v1/me/backups'),

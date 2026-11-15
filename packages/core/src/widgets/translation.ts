@@ -25,10 +25,11 @@ export const TRANSLATION_SERVICES = [
 ] as const
 export type TranslationService = (typeof TRANSLATION_SERVICES)[number]
 export type TranslationProvider = TranslationService | 'openai'
-export type WorkerTranslator = 'ai' | 'deepl' | 'microsoft'
+export type WorkerTranslator = 'ai' | Exclude<TranslationProvider, 'worker'>
 export const TRANSLATION_MAX_LENGTH = 2000
 
 export interface TranslationConfig {
+  credentialLocation: 'local' | 'worker'
   mode: 'services' | 'llm'
   services: TranslationService[]
   source: TranslationSource
@@ -68,6 +69,7 @@ export function translationConfig(raw: Record<string, unknown> = {}): Translatio
       ]
     : ['worker' as const]
   return {
+    credentialLocation: raw.credentialLocation === 'worker' ? 'worker' : 'local',
     mode: raw.mode === 'llm' ? 'llm' : 'services',
     services,
     source:

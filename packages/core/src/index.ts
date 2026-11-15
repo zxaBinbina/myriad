@@ -1,4 +1,5 @@
 export * from './types'
+export * from './credentials'
 export * from './id'
 export * from './locale'
 export * from './defaults'

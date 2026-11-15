@@ -25,6 +25,7 @@ import MemoSettings from './MemoSettings.vue'
 import TranslationSettings from './TranslationSettings.vue'
 import GithubSettings from './GithubSettings.vue'
 import { useMemo } from '../../state/memo'
+import ServiceCredentials from '../settings/ServiceCredentials.vue'
 
 const store = useStore()
 const { m, t } = useI18n()
@@ -45,6 +46,7 @@ const githubFormId = useId(),
   countdownFormId = useId(),
   fieldId = useId()
 const memo = useMemo()
+const serviceCredentials = ref<InstanceType<typeof ServiceCredentials> | null>(null)
 const reminderAllowed = ref(false)
 async function enableReminders() {
   const granted = store.platform.reminders?.request()
@@ -85,6 +87,21 @@ function close() {
 }
 async function save() {
   if (!item.value) return
+  if (serviceCredentials.value) {
+    if (busy.value) return
+    busy.value = true
+    error.value = ''
+    const target = item.value
+    try {
+      await serviceCredentials.value.save()
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : m.value.credentials.failed
+      return
+    } finally {
+      busy.value = false
+    }
+    if (target !== item.value) return
+  }
   if (item.value.kind === 'github' && githubSettings.value) {
     error.value = githubSettings.value.validate()
     if (error.value) return
@@ -271,6 +288,14 @@ onBeforeUnmount(() => {
     @close="close"
   >
     <div v-if="item" class="m-widget-editor">
+      <ServiceCredentials
+        v-if="item.kind === 'weather' || item.kind === 'github'"
+        :key="`credentials-${item.id}`"
+        ref="serviceCredentials"
+        :services="item.kind === 'weather' ? ['qweather'] : ['github']"
+        embedded
+        :form-id="item.kind === 'github' ? githubFormId : undefined"
+      />
       <GithubSettings
         v-if="item.kind === 'github'"
         :key="item.id"

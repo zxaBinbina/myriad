@@ -67,3 +67,10 @@ npm run typecheck && npm test && npm run build
 - M2 联调时出现过一次 `myriad.local` 写入落后于内存（`lastSync` 旧了几分钟），没能重现；已给持久化钩子加 try/catch，后续留意。
 - 2026-11-14：已支持独立连接令牌（默认）及可选 Access 鉴权，`LocalState.schema` 为 2，`loadLocalState` 迁移旧 Access 凭据。原令牌只存本机，不导出、不写入 Yjs。服务的 D1 文件上限由 `features.blobMaxBytes` 返回并显示在同步页。
 - 网站版（M5）选择 Access 并通过 Cookie 访问私有接口时，需要在 Access 应用里开启「绕过 OPTIONS 预检」，并在 Worker 的 `ALLOWED_ORIGINS` 里列出主页来源。
+
+- **2026-11-15 服务密钥**：`ServiceCredentials.vue` 提供全局与天气 / GitHub / 翻译组件共用入口，新增 `credentials` 设置页；新翻译组件在已连接 Worker 且没有旧本机凭据时默认 Worker，旧本机 Key 不自动迁移。草稿仅内存；Worker 状态不返回明文。`core/credentials.ts` 与后端 `credentialCrypto.ts` 镜像 AES-GCM / HKDF 协议，AAD 绑定用途、服务和传输 origin，上传只有密文，D1 二次加密。`createApi.saveCredential` 要求连接令牌与 HTTPS（本地开发例外），组件 config 只保存请求方式，绝不写入 Key。
+- 保存 / 删除后 `sync.refreshFeatures(true)` 更新能力并通过独立 BroadcastChannel 通知其他标签；组件缓存包含无秘密的 credentialRevision，翻译取消等待并丢弃旧结果。端点改变必须重新输入 OpenAI Key；更换 Worker 不搬运草稿或旧本机 Key。清单 E2E 密钥仍走设备 secrets，与服务密钥无关。轮换连接令牌后需重新配置服务密钥。
+
+- 服务密钥验证：core 79 / 扩展后台 4 / Worker 74 项测试、类型检查、Chrome / Firefox / playground 构建通过；界面、翻译、M3 与真实本地 Worker 的凭据浏览器回归通过，包括另一标签页即时更新、密文上传、失败保留输入、空白保留、删除和端点绑定。线上 Worker 已更新，凭据接口只读鉴权 / no-store 检查通过；真实第三方密钥仍待填写后验证供应商权限与额度。
+
+- 2026-11-15 正式 Chrome 验证：通过用户提供的 127.0.0.1:9222 调试连接，确认没有未保存编辑后重载扩展；「服务密钥」页九类服务入口、状态读取与空白密钥输入正常，未填写 / 上传测试密钥。截图：`myriad/artifacts/credentials-real-chrome.png`。

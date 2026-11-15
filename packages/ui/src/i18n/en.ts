@@ -232,7 +232,7 @@ const en: Messages = {
     watched: 'Preferred repositories',
     watchedHint:
       'One owner/repo per line, up to 8. Actions and releases prioritize these repositories.',
-    useToken: 'Use the Worker GitHub token after connecting',
+    useToken: 'Use the saved GitHub token after connecting',
     privateHint:
       'Configure GITHUB_TOKEN in your sync Worker and connect to view notifications and assigned items. Keep the token on the server; check scopes and API quota if unavailable.',
     invalid:
@@ -396,7 +396,7 @@ const en: Messages = {
     defaultTarget: 'Default target language',
     workerProvider: 'Server translator',
     workerHint:
-      'Connect your sync service and enable the chosen provider. m2m100 requires an explicit source language; other providers need a server API key.',
+      'Connect your sync service and enable the chosen provider. m2m100 requires an explicit source language; enter keys in settings to upload them encrypted.',
     model: 'Model',
     baseHint:
       'Enter the API root (usually ending in /v1). /chat/completions is appended automatically.',
@@ -404,7 +404,7 @@ const en: Messages = {
     region: 'Region',
     localKey: 'Device key',
     privacy:
-      'Source text and results stay in this page; Translate sends text to the selected providers. Device keys are excluded from sync and ordinary exports. Saving an empty key removes it.',
+      'Source text and results stay in this page; Translate sends text to the selected providers. Device keys are excluded from sync and ordinary exports. Empty local keys are removed; blank Worker credential fields keep saved values.',
     showKeys: 'Show keys',
     hideKeys: 'Hide keys',
     chooseService: 'Select at least one translation service in widget settings.',
@@ -413,11 +413,10 @@ const en: Messages = {
     workerMissing:
       'Connect your sync service or select a local translation provider in widget settings.',
     workerAuth: 'Sync authentication failed. Check your connection token or sign in again.',
-    disabled:
-      'This server translator is disabled. Enable AI / configure its key, or use a local provider.',
+    disabled: 'Save credentials in settings or select an enabled provider.',
     failed: 'Translation failed. Check the network, provider settings and quota, then retry.',
     errorcredentials:
-      'Add a device key in widget settings. Save settings again after changing the model endpoint.',
+      'Add credentials in widget settings. Enter the key again when changing the model endpoint.',
     errorendpoint:
       'Enter a valid HTTPS API root and model name (localhost is allowed for development).',
     errorsource: 'm2m100 cannot detect the source language. Select it explicitly.',
@@ -567,6 +566,61 @@ const en: Messages = {
   dock: {
     label: 'Dock',
   },
+  credentials: {
+    title: 'Service credentials',
+    intro:
+      'Credentials are encrypted with AES-GCM before upload over HTTPS and stored encrypted by your Worker. Shared by widgets on this service; excluded from document sync and JSON exports.',
+    connectFirst: 'Connect your Worker with a connection token in Sync settings first.',
+    disabled: 'Update your Worker and enable D1 and a connection token to store credentials.',
+    configured: 'Configured',
+    empty: 'Not configured',
+    locked: 'Token changed; replace or delete credentials',
+    environment:
+      'Worker environment credentials exist. Saved values override matching fields; deleting restores environment configuration.',
+    keep: 'Saved; leave blank to keep',
+    keepHint:
+      'Blank fields keep saved values. Secrets are never returned. Delete removes saved credentials for this service.',
+    qweatherHint:
+      'Enter your console API Host (e.g. abc.qweatherapi.com) and API Key, or an Ed25519 private key, Key ID and project ID. Delete old credentials before changing authentication methods.',
+    openaiHint:
+      'Enter the full HTTPS endpoint ending in /chat/completions and model. The key is bound to this address; changing it requires entering the key again.',
+    save: 'Save service credentials',
+    saving: 'Encrypting and saving…',
+    saved: 'Service credentials saved encrypted.',
+    remove: 'Delete saved credentials',
+    removed: 'Saved service credentials deleted.',
+    failed: 'Could not save. Check your connection and required fields.',
+    invalid:
+      'Complete the required credentials. QWeather needs an API Host and key; changing a model endpoint requires entering the key again.',
+    changedWorker: 'Worker connection changed. Reopen settings to enter credentials.',
+    location: 'Credentials and requests',
+    worker: 'Store encrypted and send via Worker',
+    local: 'Store locally and connect directly',
+    services: {
+      qweather: 'QWeather',
+      github: 'GitHub',
+      unsplash: 'Unsplash',
+      deepl: 'DeepL',
+      baidu: 'Baidu',
+      youdao: 'Youdao',
+      tencent: 'Tencent',
+      microsoft: 'Microsoft',
+      openai: 'OpenAI-compatible service',
+      brave: 'Brave Search',
+      google: 'Google CSE',
+    },
+    fields: {
+      host: 'API Host',
+      key: 'API Key / Secret / Token',
+      privateKey: 'Ed25519 private key (PEM)',
+      kid: 'Key ID',
+      sub: 'Project ID (sub)',
+      id: 'App ID / App Key / Secret ID',
+      region: 'Region',
+      endpoint: 'Full API endpoint',
+      model: 'Model',
+    },
+  },
   settings: {
     title: 'Settings',
     open: 'Open settings',
@@ -580,6 +634,7 @@ const en: Messages = {
       shortcuts: 'Keyboard',
       clock: 'Clock & date',
       sync: 'Sync',
+      credentials: 'Service credentials',
       data: 'Data',
       about: 'About',
     },
@@ -610,7 +665,8 @@ const en: Messages = {
         picsum: 'Daily random scenery',
         unsplash: 'Unsplash daily',
       },
-      unsplashNote: 'Unsplash daily needs a connected sync server with an API key configured.',
+      unsplashNote:
+        'Connect your sync server and enter an API key in Service credentials for Unsplash daily.',
       choose: 'Choose file',
       urlPlaceholder: 'https://…/wallpaper.jpg or .mp4 / .webm',
       videoNote:
@@ -820,6 +876,7 @@ const en: Messages = {
     lastSync: 'Last synced {time}',
     pending: 'Changes waiting to upload',
     errors: {
+      conflict: 'Credentials changed elsewhere. Review the latest status and save again.',
       network: 'Cannot reach the server',
       auth: 'Authentication failed. Check the connection token or Access credentials',
       forbidden: 'This identity is not on the allow list',

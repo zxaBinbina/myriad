@@ -37,7 +37,7 @@ watch(
 )
 const key = computed(() =>
   config.value.sections.length
-    ? `github:${widgetBase(store, config.value.route)}:${JSON.stringify(requestConfig.value)}:${section.value}:${credentialVersion.value}`
+    ? `github:${sync.state.features?.credentialRevision ?? ''}:${widgetBase(store, config.value.route)}:${JSON.stringify(requestConfig.value)}:${section.value}:${credentialVersion.value}`
     : null,
 )
 // A private response is kept only in this mounted instance; never in localStorage or shared caches.
