@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import sys
 import tempfile
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 ROOT = Path(__file__).resolve().parents[1]
 EXT = ROOT / 'apps/extension/.output/chrome-mv3'
@@ -42,7 +42,7 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as profile:
     requests = []
     def network(route):
         url = route.request.url
-        if '/complete/search' in url:
+        if '/complete/search' in url or 'api.bing.com/osjson' in url:
             requests.append(url)
             route.fulfill(json=['GitHub', ['GitHub remote suggestion']])
         elif '/HPImageArchive.aspx' in url:
@@ -68,13 +68,14 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as profile:
     check(permission.count() == 1 and not requests, '拒绝授权后继续显示重试入口且不请求远程')
     page.evaluate('window.permissionTest.nextGrant = true')
     permission.click()
-    page.wait_for_timeout(400)
+    expect(page.locator('.m-search__sug', has_text='GitHub remote suggestion')).to_be_visible(timeout=10000)
     check(any('/complete/search' in url for url in requests), '授权成功后加载当前引擎远程建议')
     prompts = page.evaluate('window.permissionTest.prompts')
     check(all(p['gesture'] for p in prompts), '权限请求保留原始点击的用户手势')
     check(all(p['origins'] == ['https://suggestqueries.google.com/*'] for p in prompts), '搜索授权只请求当前联想接口来源')
     count = len(requests)
     field.press('Tab')
+    expect(page.get_by_role('button', name='允许 Bing 搜索联想')).to_be_visible(timeout=10000)
     page.wait_for_timeout(300)
     check(len(requests) == count and page.locator('.m-search button[title^="允许"]').count() == 1, '切换引擎不复用其他来源的权限')
     page.locator('.m-toolbar button').last.click()
