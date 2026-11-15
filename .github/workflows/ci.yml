@@ -30,6 +30,8 @@ jobs:
       - run: npm run build:packages
       - run: npm run build:web
       - run: npm run zip
+      - name: Install browser test tooling
+        run: python3 -m pip install -r scripts/requirements.txt
       - name: Verify actual package archives
         run: |
           mkdir -p artifacts/packages
@@ -42,7 +44,6 @@ jobs:
           python3 scripts/check-release.py
       - name: Test the extension in an isolated Chrome profile
         run: |
-          python3 -m pip install -r scripts/requirements.txt
           python3 scripts/check-extension.py
           python3 scripts/check-permissions.py
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -26,12 +26,12 @@
 
 ## 安装
 
-尚未上架商店。从源码构建：
+从 [GitHub Releases](https://github.com/zxaBinbina/myriad/releases) 下载对应浏览器的 zip，解压到固定目录后按下方步骤加载；项目不进行商店发布。也可以从源码构建：
 
 ```bash
 git clone https://github.com/zxaBinbina/myriad.git
 cd myriad
-npm install
+npm ci
 npm run build        # 产出 apps/extension/.output/chrome-mv3 与 firefox-mv3
 ```
 
@@ -40,15 +40,16 @@ npm run build        # 产出 apps/extension/.output/chrome-mv3 与 firefox-mv3
 
 ### 权限
 
-| 权限                                                             | 用途                          | 何时申请                             |
-| ---------------------------------------------------------------- | ----------------------------- | ------------------------------------ |
-| `storage`                                                        | 保存快捷方式与设置            | 安装时                               |
-| 搜索联想接口的主机权限（Google、Bing、百度、DuckDuckGo、B 站）   | 搜索建议、Bing 每日壁纸       | 安装时                               |
-| `bookmarks`                                                      | 导入书签                      | 点「导入书签」时临时申请             |
-| `geolocation`                                                    | 天气的浏览器定位              | 安装时授权；只在点击定位时读取位置   |
-| `notifications`、`alarms`                                        | 待办通知及扩展后台定时提醒    | 首次保存启用通知提醒的任务时申请     |
-| 小组件数据源的主机权限                                           | 读取天气 / 一言 / 状态 / 汇率 | 搜索城市或点「允许访问数据源」时申请 |
-| 同步服务地址的主机权限（如 `https://myriad.zxabinbina.cc.cd/*`） | 同步、备份、图标代理          | 点「连接」时只申请这一个来源         |
+| 权限                                                             | 用途                          | 何时申请                                               |
+| ---------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------ |
+| `storage`                                                        | 保存快捷方式与设置            | 安装时                                                 |
+| 搜索联想接口的主机权限（Google、Bing、百度、DuckDuckGo、B 站）   | 搜索建议                      | 点击搜索框的「允许当前引擎搜索联想」时，只申请当前来源 |
+| Bing 每日壁纸的主机权限                                          | 每日一图                      | 背景设置中点击「允许 Bing 每日壁纸」时                 |
+| `bookmarks`                                                      | 导入书签                      | 点「导入书签」时临时申请                               |
+| `geolocation`                                                    | 天气的浏览器定位              | 安装时授权；只在点击定位时读取位置                     |
+| `notifications`、`alarms`                                        | 待办通知及扩展后台定时提醒    | 首次保存启用通知提醒的任务时申请                       |
+| 小组件数据源的主机权限                                           | 读取天气 / 一言 / 状态 / 汇率 | 搜索城市或点「允许访问数据源」时申请                   |
+| 同步服务地址的主机权限（如 `https://myriad.zxabinbina.cc.cd/*`） | 同步、备份、图标代理          | 点「连接」时只申请这一个来源                           |
 
 Chrome 不允许把 `geolocation` 声明为可选权限，因此它与 `storage` 一样放在必需权限中；扩展只在点击「使用浏览器定位」时调用定位 API，不会在页面打开时自动读取位置。
 
@@ -133,6 +134,10 @@ AI 摘要只在打开预览后通过已鉴权 Worker 生成，按公开正文与
 
 Chrome 打开扩展的新标签页时，键盘焦点留在地址栏，直接打字会输入到地址栏里。设置 →「搜索」里的 **打开新标签页时聚焦搜索框**（默认关闭）会让页面重新加载一次以取得焦点，这样直接打字就能进入搜索框；代价是地址栏会显示扩展地址。
 
+## 构建与发布
+
+主分支 / PR 执行自动检查，推送与扩展版本相同的 `vX.Y.Z` 标签后自动构建 Chrome / Firefox、验证附件并创建 Release，附 SHA-256 校验值。步骤见 [发布指南](docs/RELEASING.md)；后端 [自部署指南](https://github.com/zxaBinbina/myriad_api/blob/main/docs/SELF_HOSTING.md) 提供 Deploy to Cloudflare 按钮。
+
 ## 开发
 
 需要 Node.js 22 以上。
@@ -204,7 +209,7 @@ scripts/        # Playwright 冒烟测试
 
 ## 网站嵌入与 npm 包
 
-`@zxabinbina/myriad-core` 与 `@zxabinbina/myriad-ui` 已发布到公共 npm，版本 0.1.0。运行 `npm run build:packages` 生成 ESM、TypeScript 声明和 `@zxabinbina/myriad-ui/style.css`，包内附 Apache-2.0 许可证。示例见各包 README；打包到 artifacts/packages 后可用 `node scripts/check-packages.mjs` 验证真实压缩包在独立项目中的导入、类型与 Vue 构建。
+`@zxabinbina/myriad-core` 与 `@zxabinbina/myriad-ui` 已发布到公共 npm，core 版本 0.1.0，UI 版本 0.1.1。运行 `npm run build:packages` 生成 ESM、TypeScript 声明和 `@zxabinbina/myriad-ui/style.css`，包内附 Apache-2.0 许可证。示例见各包 README；打包到 artifacts/packages 后可用 `node scripts/check-packages.mjs` 验证真实压缩包在独立项目中的导入、类型与 Vue 构建。
 
 宿主入口必须显式导入 `@zxabinbina/myriad-ui/style.css`。扩展与 playground 的源码别名分别匹配包根和样式子路径，避免打包时丢失主题与基础样式。真实扩展测试默认使用本机 Chrome 的 CDP `Extensions.loadUnpacked`，在临时配置中加载构建目录，不依赖已移除的 `--load-extension` 参数。
 

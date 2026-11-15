@@ -33,7 +33,11 @@ for browser in ('chrome', 'firefox'):
         assert len(archive.read('THIRD_PARTY_NOTICES.txt')) > 1000
         for icon in manifest.get('icons', {}).values():
             assert icon in names, icon
-        assert manifest['background']['service_worker'] in names
+        if browser == 'chrome':
+            assert manifest['background']['service_worker'] in names
+        else:
+            # Firefox MV3 still uses an event page instead of service workers.
+            assert all(script in names for script in manifest['background']['scripts'])
         html = archive.read('newtab.html').decode()
         styles = re.findall(r'<link[^>]*href="([^"]+\.css)"', html)
         assert styles, 'Missing entry CSS'

@@ -12,14 +12,15 @@
     "dev": "npm run dev -w @myriad/extension",
     "dev:firefox": "npm run dev:firefox -w @myriad/extension",
     "dev:web": "npm run dev -w @myriad/playground",
-    "build": "npm run build -w @myriad/extension && npm run build:firefox -w @myriad/extension",
+    "build": "npm run notices && npm run build -w @myriad/extension && npm run build:firefox -w @myriad/extension",
     "build:web": "npm run build -w @myriad/playground",
-    "zip": "npm run zip -w @myriad/extension && npm run zip:firefox -w @myriad/extension",
+    "zip": "npm run notices && npm run zip -w @myriad/extension && npm run zip:firefox -w @myriad/extension",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build:packages": "npm run build -w @zxabinbina/myriad-core && npm run build -w @zxabinbina/myriad-ui"
+    "build:packages": "npm run build -w @zxabinbina/myriad-core && npm run build -w @zxabinbina/myriad-ui",
+    "notices": "node scripts/build-notices.mjs"
   },
   "devDependencies": {
     "prettier": "^3.9.10",

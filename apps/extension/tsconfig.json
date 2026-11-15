@@ -1,10 +1,20 @@
 {
   "extends": "./.wxt/tsconfig.json",
   "compilerOptions": {
+    "paths": {
+      "@zxabinbina/myriad-core": ["../../packages/core/src/index.ts"],
+      "@zxabinbina/myriad-ui": ["../../packages/ui/src/index.ts"],
+      "@": ["."],
+      "@/*": ["./*"],
+      "~": ["."],
+      "~/*": ["./*"],
+      "@@": ["."],
+      "@@/*": ["./*"],
+      "~~": ["."],
+      "~~/*": ["./*"]
+    },
     "noUncheckedIndexedAccess": true,
     "verbatimModuleSyntax": true,
-    "types": [
-      "node"
-    ]
+    "types": ["node"]
   }
 }

@@ -61,7 +61,7 @@ npm run typecheck && npm test && npm run build
 - 农历改用 `lunar-typescript`（MIT，无传递依赖）：Chrome / Node Intl Chinese 在 2027 春节存在一天误差，已以固定历法日期回归验证，不能恢复错误实现以减小包体积。
 - 验证：core 75、扩展后台 4、Worker 66 项单元测试通过，类型检查、Chrome / Firefox / playground 构建及翻译 / M3 / 原界面 / 天气 / 服务 / 便签浏览器回归通过。和风与 GitHub 私有 Key 尚未配置，已按用户要求做模拟测试；公开贡献图线上返回 371 天数据，公开仓库匿名额度耗尽会明确报错。M3 试用交接记录见上一级进度说明，M4 已按用户指令继续开发。
 
-- 搜索联想与 Bing 壁纸所需的主机权限目前写在 `host_permissions`（安装时授予），与需求中「可选权限」的约定不一致，后续可改为 `optional_host_permissions` 并在首次使用时申请。
+- **2026-11-15 M6 权限收尾**：安装不授予任何主机权限。搜索联想与 Bing 壁纸通过明确按钮在原始点击内只申请当前来源；未授权不发远程请求，保留本地建议与重试。`useOriginAccess` 防止迟到权限检查覆盖授权结果；切换来源清空旧授权状态。
 - 新标签页焦点：采用「重新加载自身」方案，默认关闭（设置 → 打开新标签页时聚焦搜索框）。
 - `simple-icons` 整包约 5MB，打进扩展后体积较大；可考虑按需加载或只保留常用图标。
 - 浏览器回归用 `scripts/check-ui.py`（含 Dock 放大包覆）、`scripts/check-widgets.py`（组件设置、每日缓存、跨日、可见性）、`scripts/check-services.py`（监控 / Minecraft / 汇率及备用历史）、`scripts/check-minecraft.py`（仅地址、独立 JSON、接口失败 / 未知备选、明确离线、版本切换缓存、取消）、`scripts/check-memo.py`（共享清单、循环、权限拒绝 / 通知、原生 Sanitizer / DOMPurify、独立上下文密钥与口令解锁）、`scripts/check-sync.py`（两个隔离页面联调本地 Worker）。后台提醒测试单独放在扩展 `test/`，不要从纯 core 测试导入扩展 / UI 平台类型。
@@ -114,3 +114,10 @@ npm run typecheck && npm test && npm run build
 - **2026-11-15 M5 试用修正**：确认扩展 / playground 构建漏掉主题与基础 CSS，显式样式导入和精确别名已修复。新增构建样式检查在旧产物上失败、在修复后 12 项通过；本机 Chrome 临时配置的真实扩展加载、网格 / 按钮样式与 storage 重载检查通过。112 项客户端单元测试、类型检查、Chrome / Firefox / playground 构建、29 项界面交互、M4 反馈 23 项及 homepage 34 项检查通过。
 - 用户当前 Chrome CDP 验证通过：新开的扩展页主题 / 基础样式正常，网站 `/myriad` 预览加载成功，两个页面留给用户试用。原页面检测到输入内容，未强制重载整个扩展。
 - **2026-11-15 主页目录调整**：万象网站接入已合并到新版 `/home/zxabinbina/桌面/Project/homepage`。`../homepage`（start_page 内）为旧快照，后续修改使用新版仓库；新版书架 / 阅读器与信创 PDF 工具箱保留，正式 npm 依赖不引用本仓库源码。
+
+## M6 · 发布（进行中）
+
+- UI / extension / playground 为 0.1.1，core 保持 0.1.0；UI npm 发布验证进行中。
+- `.github/workflows/ci.yml` 完成只读验证与标签 Release；上传两个浏览器 zip 和 SHA256SUMS，发布任务单独授予写权限。`docs/RELEASING.md` 记录版本、包消费验证、固定目录更新与网站发布流程。
+- `build-notices.mjs` 在 build / zip 前生成项目许可证与运行时依赖声明；WXT browser npm 包遗漏的 MIT 许可证使用 `docs/licenses/wxt-LICENSE`。`check-release.py` 验证生产附件无本机配置 / 开发文件、版本与权限、入口 CSS。
+- 扩展 TS paths 明确指向本地源码，干净 `npm ci` 后可直接 typecheck；不依赖本机已有 dist 声明。12 项权限回归、7 项真实扩展检查、12 项产物样式检查与独立压缩包消费验证通过，单元测试 core 105 + 扩展 7；后端 85。

@@ -11,7 +11,10 @@ const run = (command, args) => execFileSync(command, args, { cwd: consumer, stdi
 try {
   const archive = (name) => {
     const pkg = JSON.parse(readFileSync(resolve(root, `packages/${name}/package.json`), 'utf8'))
-    return resolve(root, `artifacts/packages/${pkg.name.replace('@', '').replace('/', '-')}-${pkg.version}.tgz`)
+    return resolve(
+      root,
+      `artifacts/packages/${pkg.name.replace('@', '').replace('/', '-')}-${pkg.version}.tgz`,
+    )
   }
   const core = archive('core')
   const ui = archive('ui')

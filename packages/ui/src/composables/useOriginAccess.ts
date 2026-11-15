@@ -8,9 +8,10 @@ export function useOriginAccess(origin: () => string) {
   const granted = ref(!platform.origins)
   const pending = ref(false)
   let revision = 0
+  let disposed = false
 
   async function refresh() {
-    if (pending.value) return
+    if (pending.value || disposed) return
     const current = source.value
     const request = ++revision
     granted.value = !current || !platform.origins
@@ -39,14 +40,24 @@ export function useOriginAccess(origin: () => string) {
       return false
     } finally {
       pending.value = false
+      if (request !== revision) void refresh()
     }
   }
 
   const onFocus = () => void refresh()
-  watch(source, refresh, { immediate: true, flush: 'sync' })
+  watch(
+    source,
+    () => {
+      ++revision
+      granted.value = !source.value || !platform.origins
+      void refresh()
+    },
+    { immediate: true, flush: 'sync' },
+  )
   window.addEventListener('focus', onFocus)
   onBeforeUnmount(() => {
     ++revision
+    disposed = true
     window.removeEventListener('focus', onFocus)
   })
   return { granted, pending, request }
