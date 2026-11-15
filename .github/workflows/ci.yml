@@ -50,6 +50,7 @@ jobs:
         with:
           name: myriad-release
           if-no-files-found: error
+          include-hidden-files: true
           path: |
             apps/extension/.output/myriad-*-chrome.zip
             apps/extension/.output/myriad-*-firefox.zip
