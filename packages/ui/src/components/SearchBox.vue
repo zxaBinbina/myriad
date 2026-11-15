@@ -17,6 +17,7 @@ import { ChevronDown, Clock3, Globe, Languages, Search, X } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from '../i18n'
 import { useStore } from '../state/store'
+import { useOriginAccess } from '../composables/useOriginAccess'
 import ItemIcon from './ItemIcon.vue'
 
 const store = useStore()
@@ -37,6 +38,15 @@ const prefixMode = ref(false)
 const engine = computed(
   () => enabled.value.find((e) => e.id === overrideId.value) ?? defaultEngine.value,
 )
+const suggestionOrigin = computed(() => {
+  try {
+    return engine.value.suggest ? new URL(engine.value.suggest.url).origin : ''
+  } catch {
+    return ''
+  }
+})
+const suggestionAccess = useOriginAccess(() => suggestionOrigin.value)
+const { granted: suggestionGranted, pending: suggestionPending } = suggestionAccess
 
 const input = ref<HTMLInputElement | null>(null)
 const query = ref('')
@@ -104,7 +114,13 @@ function fetchRemote() {
   abort?.abort()
   const q = query.value.trim()
   const sug = engine.value.suggest
-  if (!q || !sug || !s.value.suggestions.enabled || !s.value.suggestions.engine) {
+  if (
+    !q ||
+    !sug ||
+    !s.value.suggestions.enabled ||
+    !s.value.suggestions.engine ||
+    !suggestionGranted.value
+  ) {
     remote.value = []
     return
   }
@@ -125,10 +141,19 @@ function fetchRemote() {
   }, 140)
 }
 
-watch([query, () => engine.value.id], () => {
-  activeIndex.value = -1
-  fetchRemote()
-})
+watch(
+  [
+    query,
+    () => engine.value.id,
+    suggestionGranted,
+    () => s.value.suggestions.enabled,
+    () => s.value.suggestions.engine,
+  ],
+  () => {
+    activeIndex.value = -1
+    fetchRemote()
+  },
+)
 onBeforeUnmount(() => {
   clearTimeout(debounce)
   abort?.abort()
@@ -358,6 +383,20 @@ defineExpose({ focus, input })
         }}</kbd>
         {{ m.search.tabHint.replace(/^Tab\s*/, '') }}
       </span>
+      <button
+        v-if="
+          suggestionOrigin && s.suggestions.enabled && s.suggestions.engine && !suggestionGranted
+        "
+        type="button"
+        class="m-icon-btn m-icon-btn--small"
+        :aria-label="t('search.allowSuggestions', { engine: engine.name })"
+        :title="t('search.allowSuggestions', { engine: engine.name })"
+        :disabled="suggestionPending"
+        @mousedown.prevent
+        @click="suggestionAccess.request()"
+      >
+        <Globe :size="16" />
+      </button>
       <button
         v-if="query"
         type="button"

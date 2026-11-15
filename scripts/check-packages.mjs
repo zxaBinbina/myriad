@@ -9,8 +9,12 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const consumer = mkdtempSync(resolve(tmpdir(), 'myriad-package-consumer-'))
 const run = (command, args) => execFileSync(command, args, { cwd: consumer, stdio: 'inherit' })
 try {
-  const core = resolve(root, 'artifacts/packages/zxabinbina-myriad-core-0.1.0.tgz')
-  const ui = resolve(root, 'artifacts/packages/zxabinbina-myriad-ui-0.1.0.tgz')
+  const archive = (name) => {
+    const pkg = JSON.parse(readFileSync(resolve(root, `packages/${name}/package.json`), 'utf8'))
+    return resolve(root, `artifacts/packages/${pkg.name.replace('@', '').replace('/', '-')}-${pkg.version}.tgz`)
+  }
+  const core = archive('core')
+  const ui = archive('ui')
   writeFileSync(
     resolve(consumer, 'package.json'),
     JSON.stringify({ type: 'module', private: true }),

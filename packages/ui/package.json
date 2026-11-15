@@ -1,6 +1,6 @@
 {
   "name": "@zxabinbina/myriad-ui",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "万象（Myriad）的 Vue 3 界面：网格、文件夹、Dock、搜索、时钟与设置。",
   "license": "Apache-2.0",
   "type": "module",

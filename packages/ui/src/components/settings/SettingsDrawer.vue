@@ -26,6 +26,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from '../../i18n'
 import { blobStore } from '../../state/blobs'
 import { useStore } from '../../state/store'
+import { useOriginAccess } from '../../composables/useOriginAccess'
 import { useSync } from '../../state/sync'
 import { settingLabel, settingScopeName } from '../../state/syncLabels'
 import MSeg from '../base/MSeg.vue'
@@ -117,6 +118,12 @@ const comboLabel = (c: ComboKey) => {
   })
 }
 type WallSource = 'none' | WallpaperSpec['source']
+const bingAccess = useOriginAccess(() => 'https://www.bing.com')
+async function allowBing(c: ComboKey) {
+  if (!(await bingAccess.request())) return
+  const current = s.background.wallpapers[c]
+  if (current?.source === 'bing') s.background.wallpapers[c] = { ...current }
+}
 const wallSourceOptions = computed(() =>
   (
     [
@@ -669,6 +676,15 @@ function close() {
                 >
                   {{ m.settings.background.unsplashNote }}
                 </p>
+                <button
+                  v-if="wallSource(c) === 'bing' && !bingAccess.granted.value"
+                  type="button"
+                  class="m-btn m-btn--small"
+                  :disabled="bingAccess.pending.value"
+                  @click="allowBing(c)"
+                >
+                  {{ m.settings.background.allowBing }}
+                </button>
                 <div v-if="wallSource(c) === 'upload'" class="m-wall__file">
                   <span>{{ wallName(c) }}</span>
                   <button

@@ -2,7 +2,8 @@ import type { Messages } from './zh-CN'
 
 const en: Messages = {
   app: {
-    guestUnavailable: 'Features requiring personal service keys are unavailable on the visitor website.',
+    guestUnavailable:
+      'Features requiring personal service keys are unavailable on the visitor website.',
     name: 'Myriad',
     fullName: 'Myriad',
     slogan: 'Your starting point to the web — everything on one page',
@@ -115,6 +116,7 @@ const en: Messages = {
     shortcuts: 'Shortcuts',
     history: 'History',
     suggestions: 'Suggestions',
+    allowSuggestions: 'Allow {engine} search suggestions',
     removeHistory: 'Remove from history',
     openUrl: 'Open {url}',
     searchWith: 'Search with {engine}',
@@ -740,6 +742,7 @@ const en: Messages = {
       },
       unsplashNote:
         'Connect your sync server and enter an API key in Service credentials for Unsplash daily.',
+      allowBing: 'Allow Bing daily wallpaper',
       choose: 'Choose file',
       urlPlaceholder: 'https://…/wallpaper.jpg or .mp4 / .webm',
       videoNote:

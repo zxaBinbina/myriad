@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
   manifestVersion: 3,
+  zip: { name: 'myriad', zipSources: false },
   vite: () => ({
     resolve: {
       alias: [
@@ -40,15 +41,7 @@ export default defineConfig({
     ],
     // 同步服务（myriad_api）地址可自定义：连接时只申请用户填写的那个来源
     optional_host_permissions: ['https://*/*', 'http://localhost/*', 'http://127.0.0.1/*'],
-    // 搜索联想与每日壁纸接口不支持跨域，需要主机权限
-    host_permissions: [
-      'https://suggestqueries.google.com/*',
-      'https://api.bing.com/*',
-      'https://www.bing.com/*',
-      'https://suggestion.baidu.com/*',
-      'https://duckduckgo.com/*',
-      'https://s.search.bilibili.com/*',
-    ],
+    // 搜索联想与 Bing 壁纸在主动点击授权后使用上述可选主机权限。
     ...(browser === 'firefox'
       ? {
           browser_specific_settings: {

@@ -113,3 +113,4 @@ npm run typecheck && npm test && npm run build
 
 - **2026-11-15 M5 试用修正**：确认扩展 / playground 构建漏掉主题与基础 CSS，显式样式导入和精确别名已修复。新增构建样式检查在旧产物上失败、在修复后 12 项通过；本机 Chrome 临时配置的真实扩展加载、网格 / 按钮样式与 storage 重载检查通过。112 项客户端单元测试、类型检查、Chrome / Firefox / playground 构建、29 项界面交互、M4 反馈 23 项及 homepage 34 项检查通过。
 - 用户当前 Chrome CDP 验证通过：新开的扩展页主题 / 基础样式正常，网站 `/myriad` 预览加载成功，两个页面留给用户试用。原页面检测到输入内容，未强制重载整个扩展。
+- **2026-11-15 主页目录调整**：万象网站接入已合并到新版 `/home/zxabinbina/桌面/Project/homepage`。`../homepage`（start_page 内）为旧快照，后续修改使用新版仓库；新版书架 / 阅读器与信创 PDF 工具箱保留，正式 npm 依赖不引用本仓库源码。

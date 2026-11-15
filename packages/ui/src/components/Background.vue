@@ -35,6 +35,8 @@ async function bingUrl(): Promise<string> {
   const key = `wallpaper.bing.${today()}`
   const hit = await cache.get<string>(key, 86400000)
   if (hit) return hit
+  if (store.platform.origins && !(await store.platform.origins.has('https://www.bing.com')))
+    return (await cache.peek<string>(key)) ?? ''
   try {
     const res = await fetch(
       'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN',
