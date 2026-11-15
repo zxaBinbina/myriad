@@ -11,7 +11,7 @@
 | `apps/extension`  | `@myriad/extension`       | WXT 扩展，只负责实现 `MyriadPlatform`（chrome.storage、书签权限、焦点抢夺）并挂载 `MyriadApp`                                                                                                                                                                                                                                                                                                                                                  |
 | `apps/playground` | `@myriad/playground`      | 网页版宿主（localStorage），用于开发预览和 `scripts/check-ui.py`                                                                                                                                                                                                                                                                                                                                                                               |
 
-npm 共享包名为 `@zxabinbina/myriad-core` / `@zxabinbina/myriad-ui`，`0.1.0` 已公开发布。包导出独立构建的 ESM / 类型声明，UI 提供 `style.css` 子路径；应用源码开发通过 Vite aliases 与 TS paths 直接引用本地源码。扩展和 playground 保留私有工作区名 `@myriad/*`。
+npm 共享包名为 `@zxabinbina/myriad-core` / `@zxabinbina/myriad-ui`，core `0.1.0` / UI `0.1.1` 已公开发布。包导出独立构建的 ESM / 类型声明，UI 提供 `style.css` 子路径；应用源码开发通过 Vite aliases 与 TS paths 直接引用本地源码。扩展和 playground 保留私有工作区名 `@myriad/*`。
 
 ## 约定
 
@@ -115,9 +115,11 @@ npm run typecheck && npm test && npm run build
 - 用户当前 Chrome CDP 验证通过：新开的扩展页主题 / 基础样式正常，网站 `/myriad` 预览加载成功，两个页面留给用户试用。原页面检测到输入内容，未强制重载整个扩展。
 - **2026-11-15 主页目录调整**：万象网站接入已合并到新版 `/home/zxabinbina/桌面/Project/homepage`。`../homepage`（start_page 内）为旧快照，后续修改使用新版仓库；新版书架 / 阅读器与信创 PDF 工具箱保留，正式 npm 依赖不引用本仓库源码。
 
-## M6 · 发布（进行中）
+## M6 · 发布（2026-11-15）
 
-- UI / extension / playground 为 0.1.1，core 保持 0.1.0；UI npm 发布验证进行中。
+- UI / extension / playground 为 0.1.1，core 保持 0.1.0；UI 0.1.1 已完成 npm 网页验证并公开发布，registry integrity 与独立消费者验证的压缩包一致。
 - `.github/workflows/ci.yml` 完成只读验证与标签 Release；上传两个浏览器 zip 和 SHA256SUMS，发布任务单独授予写权限。`docs/RELEASING.md` 记录版本、包消费验证、固定目录更新与网站发布流程。
 - `build-notices.mjs` 在 build / zip 前生成项目许可证与运行时依赖声明；WXT browser npm 包遗漏的 MIT 许可证使用 `docs/licenses/wxt-LICENSE`。`check-release.py` 验证生产附件无本机配置 / 开发文件、版本与权限、入口 CSS。
 - 扩展 TS paths 明确指向本地源码，干净 `npm ci` 后可直接 typecheck；不依赖本机已有 dist 声明。12 项权限回归、7 项真实扩展检查、12 项产物样式检查与独立压缩包消费验证通过，单元测试 core 105 + 扩展 7；后端 85。
+
+- 客户端 / 后端主分支云端 CI 通过；v0.1.1 标签流程已创建正式 Release，Chrome / Firefox 与 SHA256SUMS 下载后校验通过。独立扩展加载检查使用固定外部图标响应，避免图标服务 404 被误判为构建失败；权限回归等待实际远程建议出现，避免依赖共享 runner 的固定时延。
