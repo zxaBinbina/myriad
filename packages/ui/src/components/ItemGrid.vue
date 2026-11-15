@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Group } from '@myriad/core'
+import type { Group } from '@zxabinbina/myriad-core'
 import { Plus } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from '../i18n'

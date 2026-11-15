@@ -1,9 +1,30 @@
 import { defineConfig } from 'wxt'
+import { fileURLToPath } from 'node:url'
 
 // storage 与定位必需；Chrome 不支持把 geolocation 声明为可选权限。
 export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
   manifestVersion: 3,
+  vite: () => ({
+    resolve: {
+      alias: [
+        {
+          find: /^@zxabinbina\/myriad-core$/,
+          replacement: fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
+        },
+        {
+          find: /^@zxabinbina\/myriad-ui$/,
+          replacement: fileURLToPath(new URL('../../packages/ui/src/index.ts', import.meta.url)),
+        },
+        {
+          find: '@zxabinbina/myriad-ui/style.css',
+          replacement: fileURLToPath(
+            new URL('../../packages/ui/src/styles/index.css', import.meta.url),
+          ),
+        },
+      ],
+    },
+  }),
   manifest: ({ browser }) => ({
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',

@@ -1,4 +1,4 @@
-import type { WidgetKind, WidgetSize } from '@myriad/core'
+import type { WidgetKind, WidgetSize } from '@zxabinbina/myriad-core'
 import { type Component, defineAsyncComponent } from 'vue'
 
 export interface WidgetDefinition {

@@ -12,7 +12,7 @@ import {
   TEXT_ICON_COLORS,
   textIconColor,
   textIconLabel,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { ImageUp } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from '../i18n'

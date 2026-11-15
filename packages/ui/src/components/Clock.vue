@@ -8,8 +8,8 @@ import {
   ymd,
   zonedParts,
   ZODIAC_EN,
-} from '@myriad/core'
-import { computed } from 'vue'
+} from '@zxabinbina/myriad-core'
+import { computed, onBeforeUnmount } from 'vue'
 import { useHolidays } from '../composables/useHolidays'
 import { useNow } from '../composables/useNow'
 import { useI18n } from '../i18n'
@@ -117,10 +117,11 @@ const extra = computed(() =>
     .filter((x) => !!x),
 )
 
-/* 连续点击 5 次触发隐藏入口（网站版登录） */
+/* 保留宿主自定义事件；访客网站不启用隐藏入口。 */
 let clicks = 0
 let clickTimer: ReturnType<typeof setTimeout> | undefined
 function onClockClick() {
+  if (store.platform.guest) return
   clicks++
   clearTimeout(clickTimer)
   clickTimer = setTimeout(() => (clicks = 0), 1200)
@@ -129,6 +130,7 @@ function onClockClick() {
     emit('secret')
   }
 }
+onBeforeUnmount(() => clearTimeout(clickTimer))
 
 const fullLabel = computed(() =>
   [

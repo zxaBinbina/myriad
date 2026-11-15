@@ -6,7 +6,7 @@ import {
   currencyConfig,
   ymd,
   type WidgetItem,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { computed, ref } from 'vue'
 import { useNow } from '../../composables/useNow'
 import { useVisibleResource } from '../../composables/useVisibleResource'

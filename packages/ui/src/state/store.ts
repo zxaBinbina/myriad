@@ -17,8 +17,17 @@ import {
   type ResolvedTheme,
   STORAGE_KEYS,
   type TriState,
-} from '@myriad/core'
-import { computed, inject, type InjectionKey, reactive, ref, toRaw, watch } from 'vue'
+} from '@zxabinbina/myriad-core'
+import {
+  computed,
+  inject,
+  type InjectionKey,
+  reactive,
+  ref,
+  toRaw,
+  watch,
+  type WatchStopHandle,
+} from 'vue'
 import type { Lang } from '../i18n'
 import type { MyriadPlatform } from '../platform'
 
@@ -68,8 +77,12 @@ function bodyOf(value: { updatedAt: number }) {
 }
 
 export function createStore(platform: MyriadPlatform) {
+  let disposed = false
+  const stops: WatchStopHandle[] = []
+  let unsubscribe: (() => void) | undefined
   const data = reactive<MyriadData>(presetData(detectLanguage()))
   const settings = reactive<MyriadSettings>(defaultSettings())
+  if (platform.theme) Object.assign(settings, platform.theme.get())
   const local = reactive<LocalState>(defaultLocalState())
   const loaded = ref(false)
   /** 是否首次使用（存储里没有任何数据） */
@@ -86,7 +99,7 @@ export function createStore(platform: MyriadPlatform) {
     search: null as { q: string; engine: string; nonce: number } | null,
     feedPreview: null as {
       itemId: string
-      entry: import('@myriad/core').FeedEntry
+      entry: import('@zxabinbina/myriad-core').FeedEntry
       ready?: Promise<import('../platform').PreviewSession | null>
     } | null,
     translationInput: null as { itemId: Id; text: string; nonce: number } | null,
@@ -110,16 +123,14 @@ export function createStore(platform: MyriadPlatform) {
   })
 
   /* ---------------- 派生状态 ---------------- */
-  const systemDark = ref(matchMedia('(prefers-color-scheme: dark)').matches)
-  matchMedia('(prefers-color-scheme: dark)').addEventListener(
-    'change',
-    (e) => (systemDark.value = e.matches),
-  )
-  const systemReduced = ref(matchMedia('(prefers-reduced-motion: reduce)').matches)
-  matchMedia('(prefers-reduced-motion: reduce)').addEventListener(
-    'change',
-    (e) => (systemReduced.value = e.matches),
-  )
+  const darkQuery = matchMedia('(prefers-color-scheme: dark)')
+  const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)')
+  const systemDark = ref(darkQuery.matches)
+  const systemReduced = ref(reducedQuery.matches)
+  const onDark = (e: MediaQueryListEvent) => (systemDark.value = e.matches)
+  const onReduced = (e: MediaQueryListEvent) => (systemReduced.value = e.matches)
+  darkQuery.addEventListener('change', onDark)
+  reducedQuery.addEventListener('change', onReduced)
 
   const lang = computed<Lang>(() =>
     settings.language === 'auto' ? detectLanguage() : settings.language,
@@ -204,27 +215,34 @@ export function createStore(platform: MyriadPlatform) {
   const persistHooks: ((key: string) => void | Promise<void>)[] = []
   function onPersist(fn: (key: string) => void | Promise<void>) {
     persistHooks.push(fn)
+    return () => {
+      const i = persistHooks.indexOf(fn)
+      if (i >= 0) persistHooks.splice(i, 1)
+    }
   }
 
-  function persist(key: string, target: { updatedAt: number } | LocalState) {
-    clearTimeout(timers[key])
-    timers[key] = setTimeout(async () => {
-      const raw = toRaw(target) as { updatedAt?: number }
-      const body = 'updatedAt' in raw ? bodyOf(raw as { updatedAt: number }) : JSON.stringify(raw)
-      if (body === lastBody[key]) return
-      lastBody[key] = body
-      // 直接改原始对象，不触发响应式更新
-      if ('updatedAt' in raw) raw.updatedAt = Date.now()
-      for (const fn of persistHooks) {
-        try {
-          await fn(key)
-        } catch (e) {
-          // 同步出错不能影响本机保存
-          console.error(e)
-        }
+  const pending = new Map<string, { updatedAt: number } | LocalState>()
+  async function save(key: string, target: { updatedAt: number } | LocalState) {
+    pending.delete(key)
+    const raw = toRaw(target) as { updatedAt?: number }
+    const body = 'updatedAt' in raw ? bodyOf(raw as { updatedAt: number }) : JSON.stringify(raw)
+    if (body === lastBody[key]) return
+    lastBody[key] = body
+    if ('updatedAt' in raw) raw.updatedAt = Date.now()
+    for (const fn of persistHooks) {
+      try {
+        await fn(key)
+      } catch (e) {
+        console.error(e)
       }
-      void storage.set(key, JSON.parse(JSON.stringify(raw)))
-    }, 250)
+    }
+    await storage.set(key, JSON.parse(JSON.stringify(raw)))
+  }
+  function persist(key: string, target: { updatedAt: number } | LocalState) {
+    if (disposed) return
+    clearTimeout(timers[key])
+    pending.set(key, target)
+    timers[key] = setTimeout(() => void save(key, target).catch(console.error), 250)
   }
 
   function replace<T extends object>(target: T, value: T) {
@@ -250,34 +268,64 @@ export function createStore(platform: MyriadPlatform) {
       storage.get(STORAGE_KEYS.settings),
       storage.get(STORAGE_KEYS.local),
     ])
+    if (disposed) return
     const d = loadData(savedData)
     firstRun.value = !d
     if (d) replace(data, d)
     replace(settings, loadSettings(savedSettings))
     replace(local, loadLocalState(savedLocal))
+    if (platform.guest) {
+      local.sync = defaultLocalState().sync
+      local.onboarded = true
+    }
+    const followTheme = () => {
+      if (platform.theme) Object.assign(settings, platform.theme.get())
+    }
+    followTheme()
+    if (platform.theme) unsubscribeTheme = platform.theme.subscribe(followTheme)
     lastBody[STORAGE_KEYS.data] = d ? bodyOf(d) : ''
     lastBody[STORAGE_KEYS.settings] = savedSettings ? bodyOf(settings) : ''
     loaded.value = true
     try {
-      localStorage.setItem(
-        BOOT_KEY,
-        JSON.stringify({
-          palette: settings.palette,
-          theme: settings.theme,
-          grabFocus: settings.search.grabFocus,
-        }),
-      )
+      if (!platform.embedded)
+        localStorage.setItem(
+          BOOT_KEY,
+          JSON.stringify({
+            palette: settings.palette,
+            theme: settings.theme,
+            grabFocus: settings.search.grabFocus,
+          }),
+        )
     } catch {
       /* 忽略 */
     }
 
-    watch(data, () => persist(STORAGE_KEYS.data, data), { deep: true })
-    watch(settings, () => persist(STORAGE_KEYS.settings, settings), { deep: true })
-    watch(local, () => persist(STORAGE_KEYS.local, local), { deep: true })
+    stops.push(watch(data, () => persist(STORAGE_KEYS.data, data), { deep: true, flush: 'sync' }))
+    stops.push(
+      watch(settings, () => persist(STORAGE_KEYS.settings, settings), {
+        deep: true,
+        flush: 'sync',
+      }),
+    )
+    stops.push(
+      watch(local, () => persist(STORAGE_KEYS.local, local), { deep: true, flush: 'sync' }),
+    )
+    if (platform.theme)
+      stops.push(
+        watch(
+          () => [settings.palette, settings.theme],
+          () => {
+            const current = platform.theme!.get()
+            if (current.palette !== settings.palette || current.theme !== settings.theme)
+              platform.theme!.set({ palette: settings.palette, theme: settings.theme })
+          },
+        ),
+      )
     if (firstRun.value) persist(STORAGE_KEYS.data, data)
+    if (platform.guest) persist(STORAGE_KEYS.local, local)
 
     // 其他标签页的修改
-    storage.subscribe?.((key, value) => {
+    unsubscribe = storage.subscribe?.((key, value) => {
       if (key === STORAGE_KEYS.data) {
         const d = loadData(value)
         if (!d || d.updatedAt <= toRaw(data).updatedAt) return
@@ -294,26 +342,41 @@ export function createStore(platform: MyriadPlatform) {
         lastBody[key] = JSON.stringify({ ...l, activeGroup: local.activeGroup })
         local.searchHistory = l.searchHistory
         local.iconCache = l.iconCache
-        local.onboarded = l.onboarded
-        local.sync = l.sync
+        local.onboarded = platform.guest || l.onboarded
+        local.sync = platform.guest ? defaultLocalState().sync : l.sync
         local.geo = l.geo
       }
     })
   }
 
   /* ---------------- 首帧主题 ---------------- */
-  watch(
-    () => [settings.palette, settings.theme, settings.search.grabFocus] as const,
-    ([palette, theme, grabFocus]) => {
-      if (!loaded.value) return
-      try {
-        localStorage.setItem(BOOT_KEY, JSON.stringify({ palette, theme, grabFocus }))
-      } catch {
-        /* 无法写入时下次首帧按系统主题 */
-      }
-    },
-    { immediate: true },
+  let unsubscribeTheme: (() => void) | undefined
+  stops.push(
+    watch(
+      () => [settings.palette, settings.theme, settings.search.grabFocus] as const,
+      ([palette, theme, grabFocus]) => {
+        if (!loaded.value || platform.embedded) return
+        try {
+          localStorage.setItem(BOOT_KEY, JSON.stringify({ palette, theme, grabFocus }))
+        } catch {
+          /* 无法写入时下次首帧按系统主题 */
+        }
+      },
+      { immediate: true },
+    ),
   )
+
+  async function dispose() {
+    disposed = true
+    stops.forEach((stop) => stop())
+    unsubscribe?.()
+    unsubscribeTheme?.()
+    darkQuery.removeEventListener('change', onDark)
+    reducedQuery.removeEventListener('change', onReduced)
+    ui.confirm?.resolve(false)
+    Object.values(timers).forEach(clearTimeout)
+    await Promise.all([...pending].map(([key, target]) => save(key, target)))
+  }
 
   return {
     platform,
@@ -341,5 +404,6 @@ export function createStore(platform: MyriadPlatform) {
     replaceData,
     replaceSettings,
     onPersist,
+    dispose,
   }
 }

@@ -1,4 +1,4 @@
-import { fetchHolidayYear, type HolidayMap, type HolidayYear } from '@myriad/core'
+import { fetchHolidayYear, type HolidayMap, type HolidayYear } from '@zxabinbina/myriad-core'
 import { ref, watch, type Ref } from 'vue'
 import { createCache } from '../state/cache'
 import { useStore } from '../state/store'

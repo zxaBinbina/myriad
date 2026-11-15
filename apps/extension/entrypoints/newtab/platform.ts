@@ -1,5 +1,5 @@
-import type { BookmarkNode, StorageAdapter } from '@myriad/core'
-import type { MyriadPlatform } from '@myriad/ui'
+import type { BookmarkNode, StorageAdapter } from '@zxabinbina/myriad-core'
+import type { MyriadPlatform } from '@zxabinbina/myriad-ui'
 import { browser } from 'wxt/browser'
 import { preparePreview } from '../../utils/preview'
 

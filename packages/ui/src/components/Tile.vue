@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ContainerRef, Id } from '@myriad/core'
+import type { ContainerRef, Id } from '@zxabinbina/myriad-core'
 import { computed } from 'vue'
 import { useActions } from '../state/actions'
 import { containerKey, useDrag } from '../state/drag'

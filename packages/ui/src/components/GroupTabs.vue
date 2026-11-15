@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatCombo } from '@myriad/core'
+import { formatCombo } from '@zxabinbina/myriad-core'
 import { PanelLeftClose, PanelLeftOpen, Plus } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from '../i18n'

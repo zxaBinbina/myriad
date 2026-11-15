@@ -10,7 +10,7 @@ import {
   type WidgetItem,
   ymd,
   zonedParts,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { ChevronLeft, ChevronRight, RotateCcw, SlidersHorizontal } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useHolidays } from '../../composables/useHolidays'

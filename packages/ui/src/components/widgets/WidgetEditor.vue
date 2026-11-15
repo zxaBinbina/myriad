@@ -8,7 +8,7 @@ import {
   QUOTE_CATEGORIES,
   weatherConfig,
   type WeatherCity,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { useStore } from '../../state/store'
 import { useI18n } from '../../i18n'
 import {
@@ -307,7 +307,7 @@ onBeforeUnmount(() => {
         @submit="save"
       />
       <ServiceCredentials
-        v-if="item.kind === 'weather' || item.kind === 'github'"
+        v-if="!store.platform.guest && (item.kind === 'weather' || item.kind === 'github')"
         :key="`credentials-${item.id}`"
         ref="serviceCredentials"
         :services="item.kind === 'weather' ? ['qweather'] : ['github']"
@@ -323,7 +323,7 @@ onBeforeUnmount(() => {
         @save="save"
       />
       <TranslationSettings
-        v-if="item.kind === 'translation'"
+        v-if="item.kind === 'translation' && !store.platform.guest"
         :key="item.id"
         ref="translationSettings"
         :initial="item.config"
@@ -331,6 +331,7 @@ onBeforeUnmount(() => {
         :form-id="translationFormId"
         @save="save"
       />
+      <p v-if="item.kind === 'translation' && store.platform.guest">{{ m.app.guestUnavailable }}</p>
       <MemoSettings
         v-if="item.kind === 'memo'"
         :key="item.id"

@@ -1,5 +1,5 @@
 import { browser } from 'wxt/browser'
-import type { PreviewSession } from '@myriad/ui'
+import type { PreviewSession } from '@zxabinbina/myriad-ui'
 export const PREVIEW_RULE_BASE = 1000000
 export function previewRule(id: number, tabId: number, url: string, extensionId: string) {
   return {

@@ -12,7 +12,7 @@ import {
   normalizeUrl,
   parseSuggestions,
   resolveEngines,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { ChevronDown, Clock3, Globe, Languages, Search, X } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from '../i18n'

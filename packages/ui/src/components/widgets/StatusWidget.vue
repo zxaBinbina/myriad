@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RefreshCw } from '@lucide/vue'
-import { statusConfig, type WidgetItem } from '@myriad/core'
+import { statusConfig, type WidgetItem } from '@zxabinbina/myriad-core'
 import { computed } from 'vue'
 import { useI18n } from '../../i18n'
 import { useStore } from '../../state/store'

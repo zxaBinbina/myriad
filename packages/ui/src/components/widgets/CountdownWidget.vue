@@ -7,7 +7,7 @@ import {
   parsePlainDate,
   zonedParts,
   type WidgetItem,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { computed, watch } from 'vue'
 import { useNow } from '../../composables/useNow'
 import { useStore } from '../../state/store'

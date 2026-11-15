@@ -8,7 +8,7 @@ import {
   mergeIntoFolder,
   moveItem,
   sameContainer,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { inject, type InjectionKey, reactive } from 'vue'
 import type { MyriadStore } from './store'
 

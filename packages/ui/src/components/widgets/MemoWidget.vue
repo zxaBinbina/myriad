@@ -9,7 +9,7 @@ import {
   zonedParts,
   type TodoTask,
   type WidgetItem,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { useMemo } from '../../state/memo'
 import { useStore } from '../../state/store'
 import { useI18n } from '../../i18n'

@@ -1,4 +1,4 @@
-import { createApi, parseQuote, parseWeather, type WeatherCity } from '@myriad/core'
+import { createApi, parseQuote, parseWeather, type WeatherCity } from '@zxabinbina/myriad-core'
 import { PermissionRequired } from '../composables/useVisibleResource'
 import type { MyriadStore } from './store'
 
@@ -9,9 +9,14 @@ export const QUOTE_ORIGIN = 'https://v1.hitokoto.cn'
 
 export function widgetBase(store: MyriadStore, route: string) {
   const sync = store.local.sync
-  if (route === 'direct' || !sync.enabled || !sync.apiBase) return ''
+  const base = store.platform.guest
+    ? store.platform.publicApiBase
+    : sync.enabled
+      ? sync.apiBase
+      : ''
+  if (route === 'direct' || !base) return ''
   try {
-    const url = new URL(sync.apiBase)
+    const url = new URL(base)
     if (
       url.protocol !== 'https:' &&
       !(url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname))
@@ -41,6 +46,7 @@ export async function widgetJson(
 const get = widgetJson
 /** Private capabilities use only the configured Worker origin, with the user's auth. */
 export async function personalApi(store: MyriadStore, signal: AbortSignal) {
+  if (store.platform.guest) throw new Error('guest-mode')
   const base = widgetBase(store, 'auto')
   if (!base) throw new Error('worker-required')
   if (store.platform.origins && !(await store.platform.origins.has(new URL(base).origin)))
@@ -83,7 +89,7 @@ export async function loadWeather(
   provider = 'auto',
   warnings = true,
 ) {
-  const base = widgetBase(store, route)
+  const base = widgetBase(store, store.platform.guest ? 'direct' : route)
   if (base && provider !== 'open-meteo') {
     try {
       const api = await personalApi(store, signal)
@@ -147,7 +153,7 @@ export async function searchCities(
   language: string,
   signal: AbortSignal,
 ): Promise<WeatherCity[]> {
-  const base = widgetBase(store, route)
+  const base = widgetBase(store, store.platform.guest ? 'direct' : route)
   const url = new URL(base ? `${base}/weather/cities` : `${CITY_ORIGIN}/v1/search`)
   url.search = new URLSearchParams({ name, language, count: '8', format: 'json' }).toString()
   const data = await get(store, url, signal)
@@ -167,7 +173,7 @@ export async function loadQuote(
   categories: string[],
   signal: AbortSignal,
 ) {
-  const base = widgetBase(store, route)
+  const base = widgetBase(store, store.platform.guest ? 'direct' : route)
   const url = new URL(base ? `${base}/quote` : `${QUOTE_ORIGIN}/`)
   if (base) url.searchParams.set('day', day)
   categories.forEach((c) => url.searchParams.append('c', c))

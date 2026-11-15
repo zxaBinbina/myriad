@@ -8,7 +8,7 @@ import {
   type CredentialService,
   type CredentialsStatus,
   type ServiceCredential,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { useStore } from '../../state/store'
 import { useSync } from '../../state/sync'
 import { useI18n } from '../../i18n'

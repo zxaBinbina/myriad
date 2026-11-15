@@ -21,7 +21,7 @@ import {
   type MemoList,
   type TodoTask,
   type WidgetItem,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { computed, inject, reactive, ref, watch, type InjectionKey } from 'vue'
 import type { MyriadStore } from './store'
 import type { ReminderJob } from '../platform'

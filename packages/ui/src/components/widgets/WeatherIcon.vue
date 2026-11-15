@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, Moon, Sun } from '@lucide/vue'
-import { weatherCondition } from '@myriad/core'
+import { weatherCondition } from '@zxabinbina/myriad-core'
 import { computed } from 'vue'
 const props = withDefaults(defineProps<{ code: number | null; isDay?: boolean; size?: number }>(), {
   isDay: true,

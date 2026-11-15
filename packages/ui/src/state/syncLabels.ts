@@ -1,4 +1,4 @@
-import { type Json, SETTINGS_SCOPES, type SettingsScope } from '@myriad/core'
+import { type Json, SETTINGS_SCOPES, type SettingsScope } from '@zxabinbina/myriad-core'
 import type { Messages } from '../i18n'
 
 /**

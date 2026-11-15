@@ -1,9 +1,12 @@
 import { parseDocument, DomUtils } from 'htmlparser2'
 
 /** Parse untrusted markup without creating browser DOM or fetching embedded resources. */
-export const documentOf = (html: string, xmlMode = false) =>
+export const documentOf = (html: string, xmlMode = false): ReturnType<typeof parseDocument> =>
   parseDocument(html.slice(0, 1024 * 1024), { xmlMode, decodeEntities: true })
-export const tags = (node: ReturnType<typeof documentOf>, name: string) =>
+export const tags = (
+  node: ReturnType<typeof documentOf>,
+  name: string,
+): ReturnType<typeof DomUtils.getElementsByTagName> =>
   DomUtils.getElementsByTagName(name, node.children, true)
 export function httpUrl(raw: unknown, base?: string): string {
   if (typeof raw !== 'string' || raw.length > 4096) return ''

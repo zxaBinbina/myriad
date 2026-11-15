@@ -24,7 +24,7 @@ import {
   SYNC_ROOTS,
   SyncEngine,
   syncedSettingKeys,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { computed, inject, type InjectionKey, reactive, shallowRef, toRaw, watch } from 'vue'
 import type { MyriadStore } from './store'
 
@@ -80,9 +80,13 @@ export function createSyncController(store: MyriadStore) {
   let running: Promise<void> | null = null
 
   const channel =
-    typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('myriad-sync')
+    store.platform.guest || typeof BroadcastChannel === 'undefined'
+      ? null
+      : new BroadcastChannel('myriad-sync')
   const credentialChannel =
-    typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('myriad-credentials')
+    store.platform.guest || typeof BroadcastChannel === 'undefined'
+      ? null
+      : new BroadcastChannel('myriad-credentials')
   async function refreshFeatures(broadcast = false) {
     const a = api
     if (!a || a.base !== apiBase.value) return
@@ -108,6 +112,7 @@ export function createSyncController(store: MyriadStore) {
   const canUnsplash = computed(() => active.value && !!state.features?.unsplash)
 
   function makeApi() {
+    if (store.platform.guest) throw new Error('guest-mode')
     return createApi({
       base: cfg().apiBase,
       token: cfg().authMode === 'token' ? cfg().token.trim() : undefined,
@@ -141,7 +146,7 @@ export function createSyncController(store: MyriadStore) {
     }
   }
 
-  store.onPersist(async (key) => {
+  const unpersist = store.onPersist(async (key) => {
     flushLocal(key)
     // Keep the CRDT snapshot at least as current as the visible data snapshot.
     // Otherwise a reload in the engine's debounce window restores older widget choices.
@@ -268,7 +273,7 @@ export function createSyncController(store: MyriadStore) {
 
   /** 页面打开时：已启用同步则恢复 */
   async function init() {
-    if (!cfg().enabled || engine) return
+    if (store.platform.guest || !cfg().enabled || engine) return
     api = makeApi()
     engine = createEngine()
     state.status = 'syncing'
@@ -465,7 +470,7 @@ export function createSyncController(store: MyriadStore) {
   }
   document.addEventListener('visibilitychange', onVisible)
   addEventListener('online', onOnline)
-  setInterval(() => {
+  const interval = setInterval(() => {
     if (document.visibilityState === 'visible' && engine && Date.now() - lastPull >= PULL_INTERVAL)
       void syncNow()
   }, 60_000)
@@ -488,6 +493,16 @@ export function createSyncController(store: MyriadStore) {
   )
 
   return {
+    dispose() {
+      document.removeEventListener('visibilitychange', onVisible)
+      removeEventListener('online', onOnline)
+      clearInterval(interval)
+      unpersist()
+      teardown()
+      channel?.close()
+      credentialChannel?.close()
+      state.choice?.resolve(null)
+    },
     state,
     conflicts,
     active,

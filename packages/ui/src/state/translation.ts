@@ -14,7 +14,7 @@ import {
   type TranslationCredentials,
   type TranslationInput,
   type TranslationProvider,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import type { MyriadStore } from './store'
 import { PermissionRequired } from '../composables/useVisibleResource'
 import { widgetBase } from './widgetRequests'
@@ -25,6 +25,7 @@ export async function loadTranslationCredentials(
   store: MyriadStore,
   itemId: string,
 ): Promise<TranslationCredentials> {
+  if (store.platform.guest) return {}
   const raw = await store.platform.storage.get<TranslationCredentials>(
     translationCredentialsKey(itemId),
   )
@@ -58,6 +59,7 @@ export async function runTranslation(
   config: TranslationConfig,
   signal: AbortSignal,
 ) {
+  if (store.platform.guest) throw new WorkerNotConfigured()
   const timed = AbortSignal.any([signal, AbortSignal.timeout(30000)])
   timed.throwIfAborted()
   if (!input.text.trim() || input.text.length > 2000) throw new TranslationError('length')

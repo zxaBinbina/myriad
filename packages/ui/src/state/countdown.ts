@@ -1,4 +1,4 @@
-import { HOLIDAY_SOURCES, parseHolidayCn, type HolidayMap } from '@myriad/core'
+import { HOLIDAY_SOURCES, parseHolidayCn, type HolidayMap } from '@zxabinbina/myriad-core'
 import type { MyriadStore } from './store'
 import { widgetBase, widgetJson } from './widgetRequests'
 export async function loadCountdownHolidays(

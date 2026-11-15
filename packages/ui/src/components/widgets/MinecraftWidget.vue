@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Gamepad2, RefreshCw } from '@lucide/vue'
-import { minecraftConfig, motdRuns, type WidgetItem } from '@myriad/core'
+import { minecraftConfig, motdRuns, type WidgetItem } from '@zxabinbina/myriad-core'
 import { computed } from 'vue'
 import { useStore } from '../../state/store'
 import { useI18n } from '../../i18n'

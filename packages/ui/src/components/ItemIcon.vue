@@ -9,7 +9,7 @@ import {
   readableOn,
   textIconColor,
   textIconLabel,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { computed, ref, watch } from 'vue'
 import { brandToIcon, matchBrand } from '../icons/library'
 import { useStore } from '../state/store'

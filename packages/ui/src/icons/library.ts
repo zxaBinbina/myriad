@@ -1,4 +1,4 @@
-import type { LibraryIcon } from '@myriad/core'
+import type { LibraryIcon } from '@zxabinbina/myriad-core'
 
 export interface BrandEntry {
   slug: string

@@ -164,6 +164,7 @@ python3 scripts/check-m4.py          # 信息流缓存、RSS、阅读预览 / AI
 
 python3 -m playwright install chromium
 python3 scripts/check-extension.py   # 在真实扩展环境加载新标签页
+python3 scripts/check-build-styles.py # 构建扩展与 playground 后，验证实际入口的四种主题与基础样式
 python3 scripts/check-sync.py        # 两个隔离页面联调本地 Worker，见脚本说明
 ```
 
@@ -186,8 +187,8 @@ npm run dev:web                  # 设置 →「同步」，服务地址填 http
 
 ```
 packages/
-  core/         # @myriad/core：数据模型、存储接口、导入导出、书签转换、搜索引擎、农历与节假日、同步引擎（sync/）
-  ui/           # @myriad/ui：Vue 3 组件（MyriadApp 入口）、状态、主题样式、i18n
+  core/         # @zxabinbina/myriad-core：数据模型、存储接口、导入导出、书签转换、搜索引擎、农历与节假日、同步引擎（sync/）
+  ui/           # @zxabinbina/myriad-ui：Vue 3 组件（MyriadApp 入口）、状态、主题样式、i18n
 apps/
   extension/    # WXT 扩展：新标签页入口、chrome.storage 适配、书签权限
   playground/   # 网页版预览，用于开发与浏览器测试
@@ -195,8 +196,16 @@ docs/           # Logo（SVG 与 512px PNG）
 scripts/        # Playwright 冒烟测试
 ```
 
-`@myriad/ui` 不直接访问浏览器扩展 API，而是通过 `MyriadPlatform` 接口（存储、书签、版本号等）由宿主注入，因此同一套界面可以跑在扩展、网页和之后的个人主页 `/myriad` 中。
+`@zxabinbina/myriad-ui` 不直接访问浏览器扩展 API，而是通过 `MyriadPlatform` 接口（存储、书签、版本号等）由宿主注入，因此同一套界面可以跑在扩展、网页和之后的个人主页 `/myriad` 中。
 
 ## 许可证
 
 [Apache License 2.0](LICENSE)
+
+## 网站嵌入与 npm 包
+
+`@zxabinbina/myriad-core` 与 `@zxabinbina/myriad-ui` 已发布到公共 npm，版本 0.1.0。运行 `npm run build:packages` 生成 ESM、TypeScript 声明和 `@zxabinbina/myriad-ui/style.css`，包内附 Apache-2.0 许可证。示例见各包 README；打包到 artifacts/packages 后可用 `node scripts/check-packages.mjs` 验证真实压缩包在独立项目中的导入、类型与 Vue 构建。
+
+宿主入口必须显式导入 `@zxabinbina/myriad-ui/style.css`。扩展与 playground 的源码别名分别匹配包根和样式子路径，避免打包时丢失主题与基础样式。真实扩展测试默认使用本机 Chrome 的 CDP `Extensions.loadUnpacked`，在临时配置中加载构建目录，不依赖已移除的 `--load-extension` 参数。
+
+`MyriadPlatform.guest` 阻止个人同步、服务密钥、私有搜索、AI 摘要与付费翻译；访客的公开 Worker 地址用 publicApiBase 提供，独立于本机同步配置。embedded 将语言与主题限制在组件内，theme / navigate 适配器接入已有网站；ready 表示数据加载完成。每次卸载清理订阅 / 定时器，并保存尚未写入的本机修改。homepage 的 /myriad 只提供访客模式，用户已取消隐藏登录 / OAuth。

@@ -1,5 +1,6 @@
-import { createLocalStorageAdapter } from '@myriad/core'
-import { MyriadApp, type MyriadPlatform } from '@myriad/ui'
+import { createLocalStorageAdapter } from '@zxabinbina/myriad-core'
+import { MyriadApp, type MyriadPlatform } from '@zxabinbina/myriad-ui'
+import '@zxabinbina/myriad-ui/style.css'
 import { createApp } from 'vue'
 import { webReminders } from './reminders'
 import '../../extension/entrypoints/newtab/page.css'

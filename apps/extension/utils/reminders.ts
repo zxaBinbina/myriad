@@ -1,5 +1,5 @@
 import { browser } from 'wxt/browser'
-import type { ReminderJob } from '@myriad/ui'
+import type { ReminderJob } from '@zxabinbina/myriad-ui'
 const JOBS = 'myriad.reminder.jobs',
   FIRED = 'myriad.reminder.fired',
   PREFIX = 'myriad:'

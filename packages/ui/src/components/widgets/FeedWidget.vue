@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Bookmark, RefreshCw } from '@lucide/vue'
-import { HOT_SOURCES, feedConfig, feedPeriod, subscriptionUrl, type WidgetItem } from '@myriad/core'
+import { HOT_SOURCES, feedConfig, feedPeriod, subscriptionUrl, type WidgetItem } from '@zxabinbina/myriad-core'
 import { useStore } from '../../state/store'
 import { useI18n } from '../../i18n'
 import { useNow } from '../../composables/useNow'

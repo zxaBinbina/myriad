@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Json, ResolvedConflict } from '@myriad/core'
+import type { Json, ResolvedConflict } from '@zxabinbina/myriad-core'
 import { Cloud, Laptop } from '@lucide/vue'
 import { ref, watch } from 'vue'
 import { useI18n } from '../i18n'

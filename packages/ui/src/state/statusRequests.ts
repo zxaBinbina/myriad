@@ -6,7 +6,7 @@ import {
   type MinecraftServer,
   type StatusConfig,
   type StatusHistoryPoint,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import type { MyriadStore } from './store'
 import { PermissionRequired } from '../composables/useVisibleResource'
 import { widgetBase, widgetJson } from './widgetRequests'

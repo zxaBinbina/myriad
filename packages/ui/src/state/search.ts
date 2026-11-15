@@ -6,7 +6,7 @@ import {
   type SearchPage,
   type SearchRoute,
   SEARCH_PROVIDERS,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import type { MyriadStore } from './store'
 import { grantSources, widgetJson, widgetBase, personalApi } from './widgetRequests'
 import { publicText } from './feeds'
@@ -50,7 +50,8 @@ export function openAggregate(store: MyriadStore, q: string, engine: string) {
   url.hash = `search?${new URLSearchParams({ q, engine })}`
   if (store.settings.search.openIn === 'new') store.openUrl(url.href, true)
   else {
-    history.pushState(null, '', url)
+    if (store.platform.navigate) store.platform.navigate(url)
+    else history.pushState(history.state, '', url)
     store.ui.search = { q, engine, nonce: Date.now() }
     void permission
       .then(() => {
@@ -62,7 +63,8 @@ export function openAggregate(store: MyriadStore, q: string, engine: string) {
 export function closeAggregate(store: MyriadStore) {
   const url = new URL(location.href)
   url.hash = ''
-  history.pushState(null, '', url)
+  if (store.platform.navigate) store.platform.navigate(url)
+  else history.pushState(history.state, '', url)
   store.ui.search = null
 }
 export async function loadSearch(
@@ -75,7 +77,10 @@ export async function loadSearch(
   const route: SearchRoute = store.settings.search.aggregate.routes[engine] || 'auto'
   const web = !!webSearchUrl(engine, q, page),
     base = widgetBase(store, route)
-  if (route === 'link' || (web && store.platform.kind === 'web' && !base))
+  if (
+    route === 'link' ||
+    (web && (store.platform.guest || (store.platform.kind === 'web' && !base)))
+  )
     throw new Error('link-only')
   // Free official site APIs can be called by visitors; configured Worker is an optional fallback.
   if (!web) {

@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref, useId } from 'vue'
-import { githubConfig, githubName, githubRepo, GITHUB_SECTIONS } from '@myriad/core'
+import { githubConfig, githubName, githubRepo, GITHUB_SECTIONS } from '@zxabinbina/myriad-core'
 import { useI18n } from '../../i18n'
+import { useStore } from '../../state/store'
+const store = useStore()
+const sections = GITHUB_SECTIONS.filter(
+  (section) => !store.platform.guest || !['tasks', 'notifications'].includes(section),
+)
 const props = defineProps<{ initial: Record<string, unknown>; formId: string }>()
 const emit = defineEmits<{ save: [] }>()
 const { m, t } = useI18n(),
@@ -70,7 +75,7 @@ defineExpose({ value, validate })
       <option value="auto">{{ m.widget.autoSource }}</option>
       <option value="direct">{{ m.widget.directSource }}</option>
     </select>
-    <div>
+    <div v-if="!store.platform.guest">
       <input
         :id="`${id}-personal`"
         v-model="config.personal"
@@ -78,10 +83,10 @@ defineExpose({ value, validate })
         name="personal"
       /><label :for="`${id}-personal`">{{ m.github.useToken }}</label>
     </div>
-    <p>{{ m.github.privateHint }}</p>
+    <p v-if="!store.platform.guest">{{ m.github.privateHint }}</p>
     <fieldset>
       <legend>{{ m.github.sections }}</legend>
-      <div v-for="section in GITHUB_SECTIONS" :key="section">
+      <div v-for="section in sections" :key="section">
         <input
           :id="`${id}-${section}`"
           v-model="config.sections"

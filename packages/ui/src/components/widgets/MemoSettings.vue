@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { memoConfig } from '@myriad/core'
+import { memoConfig } from '@zxabinbina/myriad-core'
 import { ref, watch } from 'vue'
 import { useMemo } from '../../state/memo'
 import { useStore } from '../../state/store'

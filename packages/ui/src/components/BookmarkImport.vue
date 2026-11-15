@@ -5,7 +5,7 @@ import {
   collectLinks,
   convertBookmarks,
   normalizeData,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { ChevronRight, Folder } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from '../i18n'

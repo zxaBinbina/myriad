@@ -1,4 +1,4 @@
-import type { MyriadPlatform, ReminderJob } from '@myriad/ui'
+import type { MyriadPlatform, ReminderJob } from '@zxabinbina/myriad-ui'
 /** 网页仅在页面打开时运行；Web Locks 防止多个标签页重复通知。 */
 export function webReminders(): NonNullable<MyriadPlatform['reminders']> {
   const timers = new Map<string, ReturnType<typeof setTimeout>>()

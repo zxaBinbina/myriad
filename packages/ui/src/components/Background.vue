@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ComboKey, WallpaperSpec } from '@myriad/core'
+import type { ComboKey, WallpaperSpec } from '@zxabinbina/myriad-core'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { blobStore } from '../state/blobs'
 import { createCache } from '../state/cache'

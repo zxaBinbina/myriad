@@ -9,7 +9,7 @@ import {
   type FeedSnapshot,
   type FeedEntry,
   type WidgetItem,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import type { MyriadStore } from './store'
 import { grantSources, personalApi, widgetBase, widgetJson } from './widgetRequests'
 import { PermissionRequired } from '../composables/useVisibleResource'

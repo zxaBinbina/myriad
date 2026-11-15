@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, useId, watch } from 'vue'
-import { createId, parsePlainDate, taskDeadline, todoTask, type TodoTask } from '@myriad/core'
+import { createId, parsePlainDate, taskDeadline, todoTask, type TodoTask } from '@zxabinbina/myriad-core'
 import { useMemo } from '../../state/memo'
 import { useStore } from '../../state/store'
 import { useI18n } from '../../i18n'

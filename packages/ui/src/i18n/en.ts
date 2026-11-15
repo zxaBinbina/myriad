@@ -2,6 +2,7 @@ import type { Messages } from './zh-CN'
 
 const en: Messages = {
   app: {
+    guestUnavailable: 'Features requiring personal service keys are unavailable on the visitor website.',
     name: 'Myriad',
     fullName: 'Myriad',
     slogan: 'Your starting point to the web — everything on one page',

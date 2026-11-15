@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ExternalLink, Pause, Play, Bookmark } from '@lucide/vue'
-import { feedConfig, type ReaderArticle } from '@myriad/core'
+import { feedConfig, type ReaderArticle } from '@zxabinbina/myriad-core'
 import { useI18n } from '../i18n'
 import { useStore } from '../state/store'
 import { loadReader, loadSummary, toggleFeedFavorite } from '../state/feeds'
@@ -104,7 +104,7 @@ async function load() {
   }
   if (token !== generation) return
   raf = requestAnimationFrame(scroll)
-  if (cfg.value.aiSummary && base) {
+  if (cfg.value.aiSummary && base && !store.platform.guest) {
     try {
       const result = await loadSummary(store, target.entry.url, signal)
       if (token === generation) summary.value = result.summary

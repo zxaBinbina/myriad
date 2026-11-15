@@ -1,6 +1,7 @@
-"""万象扩展加载测试：用 Playwright 自带的 Chromium 加载 .output/chrome-mv3，打开新标签页并检查界面。
+"""万象扩展加载测试：在独立 Chrome 配置中加载 .output/chrome-mv3。
 
-品牌版 Chrome 不支持 --load-extension，需要先运行 `python3 -m playwright install chromium`。
+通过 CDP Extensions.loadUnpacked 加载，不依赖品牌版 Chrome 已移除的
+--load-extension 参数。MYRIAD_BROWSER 可指定支持该调试接口的 Chromium。
 截图存到 artifacts/。
 """
 import os, sys, tempfile
@@ -8,6 +9,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXT = os.path.join(ROOT, 'apps/extension/.output/chrome-mv3')
+BROWSER = os.environ.get('MYRIAD_BROWSER', '/usr/bin/google-chrome')
 errors = []
 
 def check(cond, msg):
@@ -18,15 +20,18 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as profile:
     ctx = p.chromium.launch_persistent_context(
         profile,
         headless=True,
-        channel='chromium',  # 新版 headless 才支持扩展
+        executable_path=BROWSER,
         locale='zh-CN',
         timezone_id='Asia/Shanghai',
         viewport={'width': 1440, 'height': 900},
-        args=[f'--disable-extensions-except={EXT}', f'--load-extension={EXT}'],
+        ignore_default_args=['--disable-extensions'],
+        args=['--enable-unsafe-extension-debugging'],
     )
+    cdp = ctx.browser.new_browser_cdp_session()
+    loaded = cdp.send('Extensions.loadUnpacked', {'path': EXT})
     sw = ctx.service_workers[0] if ctx.service_workers else ctx.wait_for_event('serviceworker', timeout=15000)
     ext_id = sw.url.split('/')[2]
-    check(bool(ext_id), f'扩展已加载（{ext_id}）')
+    check(ext_id == loaded['id'], f'扩展已加载（{ext_id}）')
 
     page = ctx.new_page()
     page.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
@@ -39,6 +44,15 @@ with sync_playwright() as p, tempfile.TemporaryDirectory() as profile:
     page.wait_for_timeout(1200)
     check(page.locator('.m-groups__tab').count() == 4, '默认预设 4 个分组')
     check(page.title() != '', f'页面标题：{page.title()}')
+    style = page.locator('.myriad').evaluate("""el => {
+        const root = getComputedStyle(el);
+        const grid = getComputedStyle(el.querySelector('.m-grid'));
+        const button = getComputedStyle(el.querySelector('.m-toolbar button'));
+        return {bg:root.getPropertyValue('--bg').trim(),text:root.getPropertyValue('--text').trim(),
+                font:root.fontSize,grid:grid.display,radius:button.borderRadius};
+    }""")
+    check(bool(style['bg']) and bool(style['text']) and style['font'] == '14px', '实际扩展页面加载主题与基础样式')
+    check(style['grid'] == 'grid' and float(style['radius'].removesuffix('px')) > 0, '实际扩展网格与按钮样式生效')
     page.screenshot(path=os.path.join(ROOT, 'artifacts/extension-newtab.png'))
 
     # chrome.storage 持久化：刷新后仍跳过引导

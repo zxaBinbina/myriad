@@ -20,7 +20,7 @@ import {
   type BackupInfo,
   SYNC_SCOPES,
   type WallpaperSpec,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { Download, ExternalLink, History, Plus, RefreshCw, Trash2, Upload, X } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from '../../i18n'
@@ -55,11 +55,14 @@ const SECTIONS = [
   'about',
 ] as const
 type Section = (typeof SECTIONS)[number]
+const sections = SECTIONS.filter(
+  (id) => !store.platform.guest || !['sync', 'credentials'].includes(id),
+)
 const section = ref<Section>('appearance')
 watch(
   () => store.ui.settingsSection,
   (v) => {
-    if ((SECTIONS as readonly string[]).includes(v)) section.value = v as Section
+    if ((sections as readonly string[]).includes(v)) section.value = v as Section
   },
   { immediate: true },
 )
@@ -550,7 +553,7 @@ function close() {
         </header>
         <nav class="m-drawer__nav" :aria-label="m.settings.title">
           <button
-            v-for="sec in SECTIONS"
+            v-for="sec in sections"
             :key="sec"
             type="button"
             class="m-drawer__tab"

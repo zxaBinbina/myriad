@@ -7,9 +7,14 @@ import {
   httpUrl,
   createId,
   type WidgetItem,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { useI18n } from '../../i18n'
 import MSwitch from '../base/MSwitch.vue'
+import { useStore } from '../../state/store'
+const store = useStore()
+const toggles = (
+  ['preview', 'hoverPreview', 'readMarks', 'favoritesEnabled', 'aiSummary', 'autoScroll'] as const
+).filter((key) => !store.platform.guest || key !== 'aiSummary')
 const props = defineProps<{ item: WidgetItem; formId: string }>(),
   emit = defineEmits<{ submit: [] }>()
 const { m, lang } = useI18n(),
@@ -108,17 +113,7 @@ defineExpose({
       ><input :id="`${id}-time`" v-model="config.refreshTime" type="time" required class="m-input"
     /></label>
     <p class="m-feed-settings__hint">{{ m.feeds.scheduleHint }}</p>
-    <label
-      v-for="key in [
-        'preview',
-        'hoverPreview',
-        'readMarks',
-        'favoritesEnabled',
-        'aiSummary',
-        'autoScroll',
-      ] as const"
-      :key="key"
-      class="m-feed-settings__toggle"
+    <label v-for="key in toggles" :key="key" class="m-feed-settings__toggle"
       ><span>{{ m.feeds[key] }}</span
       ><MSwitch v-model="config[key]" :label="m.feeds[key]"
     /></label>

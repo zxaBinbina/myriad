@@ -7,7 +7,7 @@ import {
   type FeedEntry,
   type ReaderArticle,
   type WidgetItem,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { useStore } from '../state/store'
 import { useI18n } from '../i18n'
 import { loadReader, loadSummary } from '../state/feeds'
@@ -108,7 +108,7 @@ async function load() {
     if (token === generation) loading.value = false
   }
   if (token !== generation || signal.aborted) return
-  if (cfg.value.aiSummary && widgetBase(store, 'auto')) {
+  if (cfg.value.aiSummary && widgetBase(store, 'auto') && !store.platform.guest) {
     try {
       const result = await loadSummary(store, props.entry.url, signal)
       if (token === generation) summary.value = result.summary

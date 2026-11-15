@@ -1,6 +1,7 @@
 /** 简体中文文案。英文文案（en.ts）必须与这里的结构完全一致。 */
 const zhCN = {
   app: {
+    guestUnavailable: '网站访客版暂不提供需要个人密钥的功能。',
     name: '万象',
     fullName: '万象导航',
     slogan: '你的上网起点，一页尽万象',

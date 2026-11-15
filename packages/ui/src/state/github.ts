@@ -4,7 +4,7 @@ import {
   parseGithub,
   type GithubConfig,
   type GithubSection,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import type { MyriadStore } from './store'
 import { personalApi, widgetBase, widgetJson } from './widgetRequests'
 export class GithubSetupRequired extends Error {}
@@ -23,7 +23,7 @@ export async function loadGithub(
   })
   const base = widgetBase(store, config.route)
   if (base) {
-    if (config.personal) {
+    if (config.personal && !store.platform.guest) {
       try {
         return parseGithub(await (await personalApi(store, signal)).github(params, signal), section)
       } catch (e) {

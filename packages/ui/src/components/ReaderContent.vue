@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ImageOff } from '@lucide/vue'
-import { httpUrl, type ReaderArticle, type ReaderBlock } from '@myriad/core'
+import { httpUrl, type ReaderArticle, type ReaderBlock } from '@zxabinbina/myriad-core'
 import { useI18n } from '../i18n'
 const props = defineProps<{ article?: ReaderArticle }>()
 const emit = defineEmits<{ playing: [value: boolean] }>()

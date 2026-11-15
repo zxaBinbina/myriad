@@ -1,4 +1,4 @@
-import type { StorageAdapter } from '@myriad/core'
+import type { StorageAdapter } from '@zxabinbina/myriad-core'
 
 /** 带过期时间的缓存，保存在宿主存储中（不同步） */
 export function createCache(storage: StorageAdapter) {

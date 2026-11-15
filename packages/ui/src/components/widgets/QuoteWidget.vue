@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Heart } from '@lucide/vue'
-import { quoteConfig, ymd, type WidgetItem } from '@myriad/core'
+import { quoteConfig, ymd, type WidgetItem } from '@zxabinbina/myriad-core'
 import { computed, watch } from 'vue'
 import { useI18n } from '../../i18n'
 import { useNow } from '../../composables/useNow'

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ArrowLeft, ExternalLink, Search } from '@lucide/vue'
-import { resolveEngines, buildSearchUrl, mergeSearchResults, type SearchResult } from '@myriad/core'
+import { resolveEngines, buildSearchUrl, mergeSearchResults, type SearchResult } from '@zxabinbina/myriad-core'
 import { useStore } from '../state/store'
 import { useI18n } from '../i18n'
 import { aggregateEngines, closeAggregate, loadSearch, searchOrigins } from '../state/search'

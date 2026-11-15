@@ -10,13 +10,13 @@ import {
   type CurrencyConfig,
   type CurrencyReading,
   type PlainDate,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import type { MyriadStore } from './store'
 import { PermissionRequired } from '../composables/useVisibleResource'
 import { widgetBase, widgetJson } from './widgetRequests'
 export const CURRENCY_ORIGINS = [FRANKFURTER_ORIGIN, ER_ORIGIN, CURRENCY_API_ORIGIN]
 async function rate(store: MyriadStore, config: CurrencyConfig, date: string, signal: AbortSignal) {
-  const base = widgetBase(store, config.route)
+  const base = widgetBase(store, store.platform.guest ? 'direct' : config.route)
   if (base) {
     const url = new URL(`${base}/currency`)
     url.search = new URLSearchParams({ base: config.base, quote: config.quote, date }).toString()
@@ -87,7 +87,7 @@ export async function loadCurrency(
   const current = await rate(store, config, 'latest', signal)
   let points: CurrencyReading['history'] = []
   if (withHistory) {
-    const base = widgetBase(store, config.route)
+    const base = widgetBase(store, store.platform.guest ? 'direct' : config.route)
     const from = ymd(addDays(today, -30)),
       to = ymd(today)
     const url = new URL(

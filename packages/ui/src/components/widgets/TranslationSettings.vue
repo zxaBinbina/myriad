@@ -6,7 +6,7 @@ import {
   type TranslationCredentials,
   type TranslationProvider,
   type CredentialService,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { computed, onMounted, ref, useId } from 'vue'
 import { useI18n } from '../../i18n'
 import { useStore } from '../../state/store'

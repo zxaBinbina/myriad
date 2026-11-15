@@ -11,7 +11,7 @@ import {
   STATUS_URL,
   statusConfig,
   type MinecraftServer,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { useI18n } from '../../i18n'
 import MSwitch from '../base/MSwitch.vue'
 const props = defineProps<{

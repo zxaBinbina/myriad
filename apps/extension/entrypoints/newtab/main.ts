@@ -1,4 +1,5 @@
-import { MyriadApp } from '@myriad/ui'
+import { MyriadApp } from '@zxabinbina/myriad-ui'
+import '@zxabinbina/myriad-ui/style.css'
 import { createApp } from 'vue'
 import { createExtensionPlatform } from './platform'
 import './page.css'

@@ -4,14 +4,14 @@
 
 ## 结构
 
-| 工作区            | 包名                 | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| ----------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/core`   | `@myriad/core`       | 纯 TypeScript，无 Vue / 浏览器扩展依赖：类型（`types.ts`）、默认值与预设（`defaults.ts`）、数据操作（`model.ts`）、存储接口（`storage.ts`）、JSON 导入导出（`io.ts`）、书签转换（`bookmarks.ts`）、搜索引擎（`engines.ts`）、图标回退（`icons.ts`）、快捷键解析（`keys.ts`）、农历 / 节气 / 节假日（`calendar/`）、同步（`sync/`：JSON↔Yjs 映射与三方冲突比较 `yjson.ts`、引擎 `engine.ts`、myriad_api 客户端 `api.ts`、同步范围 `scopes.ts`） |
-| `packages/ui`     | `@myriad/ui`         | Vue 3 界面，入口组件 `MyriadApp`；状态在 `state/`（`store.ts` 响应式单例 + 持久化，`actions.ts` 增删改，`drag.ts` 拖拽，`sync.ts` 同步控制器，`syncLabels.ts` 设置项文案），样式在 `styles/`，文案在 `i18n/`                                                                                                                                                                                                                                   |
-| `apps/extension`  | `@myriad/extension`  | WXT 扩展，只负责实现 `MyriadPlatform`（chrome.storage、书签权限、焦点抢夺）并挂载 `MyriadApp`                                                                                                                                                                                                                                                                                                                                                  |
-| `apps/playground` | `@myriad/playground` | 网页版宿主（localStorage），用于开发预览和 `scripts/check-ui.py`                                                                                                                                                                                                                                                                                                                                                                               |
+| 工作区            | 包名                      | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core`   | `@zxabinbina/myriad-core` | 纯 TypeScript，无 Vue / 浏览器扩展依赖：类型（`types.ts`）、默认值与预设（`defaults.ts`）、数据操作（`model.ts`）、存储接口（`storage.ts`）、JSON 导入导出（`io.ts`）、书签转换（`bookmarks.ts`）、搜索引擎（`engines.ts`）、图标回退（`icons.ts`）、快捷键解析（`keys.ts`）、农历 / 节气 / 节假日（`calendar/`）、同步（`sync/`：JSON↔Yjs 映射与三方冲突比较 `yjson.ts`、引擎 `engine.ts`、myriad_api 客户端 `api.ts`、同步范围 `scopes.ts`） |
+| `packages/ui`     | `@zxabinbina/myriad-ui`   | Vue 3 界面，入口组件 `MyriadApp`；状态在 `state/`（`store.ts` 响应式单例 + 持久化，`actions.ts` 增删改，`drag.ts` 拖拽，`sync.ts` 同步控制器，`syncLabels.ts` 设置项文案），样式在 `styles/`，文案在 `i18n/`                                                                                                                                                                                                                                   |
+| `apps/extension`  | `@myriad/extension`       | WXT 扩展，只负责实现 `MyriadPlatform`（chrome.storage、书签权限、焦点抢夺）并挂载 `MyriadApp`                                                                                                                                                                                                                                                                                                                                                  |
+| `apps/playground` | `@myriad/playground`      | 网页版宿主（localStorage），用于开发预览和 `scripts/check-ui.py`                                                                                                                                                                                                                                                                                                                                                                               |
 
-npm 正式包名计划为 `@zxabinbina/myriad-core` / `@zxabinbina/myriad-ui`，在 M5 发布时再改名；现在工作区内部统一用 `@myriad/*`，包直接导出 `src/*.ts` 源码，不单独构建。
+npm 共享包名为 `@zxabinbina/myriad-core` / `@zxabinbina/myriad-ui`，`0.1.0` 已公开发布。包导出独立构建的 ESM / 类型声明，UI 提供 `style.css` 子路径；应用源码开发通过 Vite aliases 与 TS paths 直接引用本地源码。扩展和 playground 保留私有工作区名 `@myriad/*`。
 
 ## 约定
 
@@ -19,6 +19,7 @@ npm 正式包名计划为 `@zxabinbina/myriad-core` / `@zxabinbina/myriad-ui`，
 - **数据结构**：持久化数据分三块，键名见 `STORAGE_KEYS`：`myriad.data`（分组 / 快捷方式 / 文件夹 / 小组件，将来同步）、`myriad.settings`（设置，将来同步）、`myriad.local`（当前分组、搜索历史、图标缓存等仅本机状态）。改动结构时提升 `schema` 并在 `load*` 里做迁移，旧数据必须能读。
 - **双语**：所有界面文案放在 `i18n/zh-CN.ts`，`en.ts` 由 `Messages` 类型约束必须同步补齐。
 - **样式**：沿用 homepage 的语义 CSS 变量（`--bg`、`--panel`、`--text`、`--muted`、`--blue`（强调色）、`--border` …），定义在 `styles/theme.css`，按 `data-palette` × `data-theme` 切换。组件类名用 `m-` 前缀 + BEM。尊重 `prefers-reduced-motion` 与设置里的「减少动态效果」。
+- **样式入口**：扩展与 playground 必须显式导入 `@zxabinbina/myriad-ui/style.css`。Vite 对包根使用精确别名，CSS 子路径单独指向 `src/styles/index.css`，不依赖聚合导出模块中的副作用导入；否则 `sideEffects` 与 tree shaking 可能丢弃主题 / 基础 CSS。修改库构建或别名后执行 `scripts/check-build-styles.py` 验证实际入口链接的样式。
 - **首帧主题**：`store.ts` 把配色与明暗写入 `localStorage['myriad-boot']`，扩展和 playground 各自的 `public/theme-init.js` 在样式加载前同步读取，避免闪烁。改主题相关逻辑时三处一起改。
 - **小组件**：在 `components/widgets/registry.ts` 注册（图标、可选尺寸、异步组件），`WidgetKind` 在 core 的 `types.ts` 里扩充。组件只在可见时拉数据。
 - **权限**：支持动态申请的权限做成可选，用到时通过 `browser.permissions.request` 申请。`storage` 与 `geolocation` 必需；Chrome 不支持将定位权限声明为可选（[官方限制](https://developer.chrome.com/docs/extensions/reference/api/permissions#step_2_declare_optional_permissions_in_the_manifest)），定位只在用户点击时调用，不对它使用 `permissions.request`。
@@ -36,7 +37,7 @@ npm 正式包名计划为 `@zxabinbina/myriad-core` / `@zxabinbina/myriad-ui`，
 npm run typecheck && npm test && npm run build
 ```
 
-涉及界面交互时再跑 `scripts/check-ui.py`（见 README）。`scripts/check-extension.py` 需要 Playwright 自带的 Chromium（品牌版 Chrome 不支持 `--load-extension`）；本机目前下载不到，暂时由用户手动加载扩展验证。
+涉及界面交互时再跑 `scripts/check-ui.py`（见 README）。`scripts/check-extension.py` 在临时配置中用 CDP `Extensions.loadUnpacked` 加载真实扩展，默认使用本机 Chrome，`MYRIAD_BROWSER` 可覆盖路径；需浏览器支持该调试接口，仅对临时测试进程启用 `--enable-unsafe-extension-debugging`。构建扩展与 playground 后执行 `python3 scripts/check-build-styles.py`，检查 Chrome / Firefox / 网页三个实际入口的四种主题与基础控件样式。
 
 ## 已知问题 / 待办
 
@@ -100,3 +101,15 @@ npm run typecheck && npm test && npm run build
 - `store.onPersist` 可等待异步钩子；同步钩子先保存 CRDT 快照，再发布本地数据，防止 400ms 快照防抖窗口内快速重载恢复旧平台。
 - 验证：105 core / 7 扩展 / 85 Worker 测试、类型检查和 Chrome / Firefox / playground 构建通过。原 M4 20 项及 `scripts/check-m4-feedback.py` 新增 23 项通过（生成真实本地 WebM / WAV 验证播放，媒体失败、悬浮、选择重载、原生 v 校验）；脚本离线使用构建产物与隔离上下文，不写用户数据，需要 ffmpeg。
 - Worker reader v2 已部署 `d72d58ca-8a79-45dc-ad0a-a025382d0f16`；线上 example.com / MDN reader 200 且有 blocks，MDN 的第三方嵌入内容返回占位符。原界面 / M3 及真实本地 Worker 双设备同步、备份 / 回滚、D1 文件与重载恢复回归通过（隔离临时库）。Chrome CDP 初次只读连接成功，但后续新连接等待浏览器响应超时；此次交互证据来自隔离 headless Chrome 157，不冒充用户当前扩展已经重载。M5 尚未开始。
+
+## M5 · 网站版
+
+- 正式共享包名 @zxabinbina/myriad-core / @zxabinbina/myriad-ui，ESM dist 出口与声明，UI 显式 CSS 子路径、Vue peer dependency。源码开发通过应用 Vite aliases 与 TS paths，发布只打包 dist / README / LICENSE。
+- guest 平台隔离个人能力；公开 Worker 地址与同步配置分离，免费 CORS 天气 / 一言 / 汇率优先直连。embedded 平台不改根语言 / 主题，通过 host theme / navigate 适配器接入网站路由。
+- 页面卸载必须清理 store / sync 监听与定时器并保存 pending 数据；保持 M4 CRDT 先于可见快照的持久化顺序。
+- 网站隐藏登录 / OAuth 已取消；homepage 发布前保持本地，不推送含 file: 引用的部署分支。
+
+- **M5 完成，等待试用反馈**：`@zxabinbina/myriad-core@0.1.0` 与 `@zxabinbina/myriad-ui@0.1.0` 已公开可下载，registry integrity 与独立消费测试的压缩包一致。homepage 已移除 `file:` 引用并锁定两包 `0.1.0`，无相邻源码仓库的独立安装 / 构建通过。197 项单元测试、类型检查、库 / 双浏览器 / 网页构建、M4 43 项与 M5 34 项浏览器检查及既有回归通过；分享与 SEO 检查通过。homepage 改动仍保留本地，M6 尚未开始。
+
+- **2026-11-15 M5 试用修正**：确认扩展 / playground 构建漏掉主题与基础 CSS，显式样式导入和精确别名已修复。新增构建样式检查在旧产物上失败、在修复后 12 项通过；本机 Chrome 临时配置的真实扩展加载、网格 / 按钮样式与 storage 重载检查通过。112 项客户端单元测试、类型检查、Chrome / Firefox / playground 构建、29 项界面交互、M4 反馈 23 项及 homepage 34 项检查通过。
+- 用户当前 Chrome CDP 验证通过：新开的扩展页主题 / 基础样式正常，网站 `/myriad` 预览加载成功，两个页面留给用户试用。原页面检测到输入内容，未强制重载整个扩展。

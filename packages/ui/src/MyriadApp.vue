@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatCombo, matchAny } from '@myriad/core'
+import { formatCombo, matchAny } from '@zxabinbina/myriad-core'
 import { LayoutDashboard, Plus, Settings } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import BookmarkImport from './components/BookmarkImport.vue'
@@ -32,7 +32,7 @@ import { createMemoController, MEMO_KEY } from './state/memo'
 import MemoDialogs from './components/widgets/MemoDialogs.vue'
 
 const props = defineProps<{ platform: MyriadPlatform }>()
-const emit = defineEmits<{ secret: [] }>()
+const emit = defineEmits<{ secret: []; ready: [] }>()
 
 const store = createStore(props.platform)
 const i18n = createI18n(store.lang)
@@ -89,6 +89,7 @@ watch(
 watch(
   () => [s.palette, store.resolvedTheme.value] as const,
   ([palette, theme]) => {
+    if (props.platform.embedded) return
     document.documentElement.dataset.myriadPalette = palette
     document.documentElement.dataset.myriadTheme = theme
     document.documentElement.style.colorScheme = theme
@@ -98,7 +99,7 @@ watch(
 watch(
   store.lang,
   (lang) => {
-    document.documentElement.lang = lang
+    if (!props.platform.embedded) document.documentElement.lang = lang
     if (props.platform.kind === 'extension') document.title = m.value.app.newTab
   },
   { immediate: true },
@@ -177,18 +178,26 @@ function onKeydown(e: KeyboardEvent) {
 onMounted(async () => {
   addEventListener('keydown', onKeydown)
   await store.load()
+  if (unmounted) return
+  emit('ready')
   searchFromLocation(store)
   addEventListener('hashchange', routeChanged)
   addEventListener('popstate', routeChanged)
   if (props.platform.focusRequested) search.value?.focus()
-  void sync.init()
+  if (!props.platform.guest) void sync.init()
 })
+let unmounted = false
 onBeforeUnmount(() => {
+  unmounted = true
   removeEventListener('hashchange', routeChanged)
   removeEventListener('popstate', routeChanged)
   memo.dispose()
   removeEventListener('keydown', onKeydown)
   clearTimeout(transitionTimer)
+  void store
+    .dispose()
+    .catch(console.error)
+    .finally(() => sync.dispose())
 })
 function routeChanged() {
   searchFromLocation(store)
@@ -217,6 +226,7 @@ function onRootContextMenu(e: MouseEvent) {
   <div
     ref="root"
     class="myriad"
+    :lang="store.lang.value"
     :class="{
       'has-wallpaper': hasWallpaper,
       'is-side': side,
@@ -272,10 +282,14 @@ function onRootContextMenu(e: MouseEvent) {
         <SearchBox ref="search" />
       </header>
       <GroupTabs v-if="!side && store.loaded.value && !store.ui.search" class="m-shell__tabs" />
-      <main class="m-main" :aria-label="store.activeGroup.value.name">
+      <component
+        :is="props.platform.embedded ? 'div' : 'main'"
+        class="m-main"
+        :aria-label="store.activeGroup.value.name"
+      >
         <SearchResults v-if="store.loaded.value && store.ui.search" />
         <GroupPager v-else-if="store.loaded.value" />
-      </main>
+      </component>
     </div>
 
     <Dock v-if="store.loaded.value" />

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { emptyData, presetData } from '@myriad/core'
+import { emptyData, presetData } from '@zxabinbina/myriad-core'
 import { BookMarked, LayoutGrid, Square } from '@lucide/vue'
 import { computed } from 'vue'
 import { useI18n } from '../i18n'

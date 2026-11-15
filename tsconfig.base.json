@@ -12,6 +12,10 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "paths": {
+      "@zxabinbina/myriad-core": ["./packages/core/src/index.ts"],
+      "@zxabinbina/myriad-ui": ["./packages/ui/src/index.ts"]
+    }
   }
 }

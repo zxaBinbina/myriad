@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Settings2 } from '@lucide/vue'
-import type { WidgetItem } from '@myriad/core'
+import type { WidgetItem } from '@zxabinbina/myriad-core'
 import { useI18n } from '../../i18n'
 import { useStore } from '../../state/store'
 defineProps<{ item: WidgetItem; title?: string }>()

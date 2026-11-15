@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RefreshCw, Star, GitFork, CircleDot } from '@lucide/vue'
 import { computed, ref, watch, useId } from 'vue'
-import { githubConfig, type GithubSection, type WidgetItem } from '@myriad/core'
+import { githubConfig, type GithubSection, type WidgetItem } from '@zxabinbina/myriad-core'
 import { useStore } from '../../state/store'
 import { useI18n } from '../../i18n'
 import { useVisibleResource } from '../../composables/useVisibleResource'

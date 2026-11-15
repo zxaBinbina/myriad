@@ -9,7 +9,7 @@ import {
   type TranslationSource,
   type TranslationLanguage,
   type WidgetItem,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { useWidgetVisibility } from '../../composables/useWidgetVisibility'
 import { useI18n } from '../../i18n'

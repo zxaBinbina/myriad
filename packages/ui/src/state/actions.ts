@@ -13,7 +13,7 @@ import {
   moveItem,
   type WidgetKind,
   type WidgetSize,
-} from '@myriad/core'
+} from '@zxabinbina/myriad-core'
 import { inject, type InjectionKey } from 'vue'
 import type { I18n } from '../i18n'
 import type { ContextMenuItem, MyriadStore } from './store'

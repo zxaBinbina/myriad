@@ -1,4 +1,4 @@
-import { findContainer } from '@myriad/core'
+import { findContainer } from '@zxabinbina/myriad-core'
 import { computed, onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
 import { useStore } from '../state/store'
 
